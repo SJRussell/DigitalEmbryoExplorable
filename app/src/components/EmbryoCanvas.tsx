@@ -50,32 +50,48 @@ export function EmbryoCanvas() {
   const visibility = useStore((s) => s.visibility)
   const setSelectedLineage = useStore((s) => s.setSelectedLineage)
 
-  const { cells, scale, embryoRadius } = useMemo(() => {
+  const { cells, scale, embryoRadius, isDividing } = useMemo(() => {
     if (!stages.length)
-      return { cells: [] as Cell[], scale: 0.2, embryoRadius: 1.0 }
+      return { cells: [] as Cell[], scale: 0.2, embryoRadius: 1.0, isDividing: false }
     const i0 = Math.floor(t)
     const i1 = Math.min(stages.length - 1, i0 + 1)
     const alpha = t - i0
     const s0 = stages[i0]
     const s1 = stages[i1]
 
-    // Interpolate total cell count
-    let count = Math.max(1, Math.round(lerp(s0.cellCount, s1.cellCount, alpha)))
-
-    // Simple illustrative perturbation effects
-    if (active.includes('AURKA_inhibit') && (s0.day <= 2 || s1.day <= 2)) {
-      count = Math.min(count, 4)
+    // Check for AURKA arrest - should arrest at 2-cell or 4-cell stage
+    let maxStageForARRest = stages.length - 1
+    if (active.includes('AURKA_inhibit')) {
+      // Find index of 4-cell stage
+      const fourCellIndex = stages.findIndex(s => s.cellCount >= 4)
+      if (fourCellIndex >= 0) {
+        maxStageForARRest = Math.min(fourCellIndex, stages.length - 1)
+      }
     }
+
+    // Clamp current stage to arrest point if needed
+    const effectiveI0 = Math.min(i0, maxStageForARRest)
+    const effectiveI1 = Math.min(i1, maxStageForARRest)
+    const effectiveS0 = stages[effectiveI0]
+    const effectiveS1 = stages[effectiveI1]
+
+    // Detect if we're in a division transition
+    const isDividing = alpha > 0.3 && alpha < 0.7 && effectiveS0.cellCount !== effectiveS1.cellCount
+
+    // Interpolate total cell count
+    let count = Math.max(1, Math.round(lerp(effectiveS0.cellCount, effectiveS1.cellCount, alpha)))
+
+    // Apply glycolysis effects (but not AURKA since that's handled by arrest)
     if (active.includes('glycolysis_impair')) {
-      const f = perts?.glycolysis_impair?.effects?.divisionRateFactor ?? 0.8
+      const f = perts?.glycolysis_impair?.effects?.divisionRateFactor ?? 0.7
       count = Math.max(1, Math.round(count * f))
     }
 
     // Lineage ratios interpolation (default to undetermined)
-    const te0 = s0.lineages?.TE ?? 0
-    const te1 = s1.lineages?.TE ?? 0
-    const icm0 = s0.lineages?.ICM ?? 0
-    const icm1 = s1.lineages?.ICM ?? 0
+    const te0 = effectiveS0.lineages?.TE ?? 0
+    const te1 = effectiveS1.lineages?.TE ?? 0
+    const icm0 = effectiveS0.lineages?.ICM ?? 0
+    const icm1 = effectiveS1.lineages?.ICM ?? 0
     const teRatio = lerp(te0, te1, alpha)
     const icmRatio = lerp(icm0, icm1, alpha)
 
@@ -89,7 +105,7 @@ export function EmbryoCanvas() {
     if (active.includes('glycolysis_impair')) scl *= 0.9
 
     const embryoRadius = 1.0
-    const avgDay = lerp(s0.day, s1.day, alpha)
+    const avgDay = lerp(effectiveS0.day, effectiveS1.day, alpha)
     const blast = smoothstep(4.0, 5.0, avgDay)
     // Maintain a cavity at blastocyst stage but don't render a fluid mesh
     let cavityR = embryoRadius * (0.18 + 0.47 * blast)
@@ -162,46 +178,108 @@ export function EmbryoCanvas() {
     if (count <= 4) {
       const R = embryoRadius
       cells.length = 0
-      if (count === 1) {
-        const r = R * 0.98
-        cells.push({ position: new THREE.Vector3(0, 0, 0), lineage: 'undetermined', scale: [r * 1.02, r, r * 1.02] })
-        scl = r
-      } else if (count === 2) {
-        const r = R * 0.5 * 0.99
-        const d = R - r
-        cells.push({ position: new THREE.Vector3(0, d, 0), lineage: 'undetermined', scale: [r * 1.05, r * 1.15, r * 1.05] })
-        cells.push({ position: new THREE.Vector3(0, -d, 0), lineage: 'undetermined', scale: [r * 1.05, r * 1.15, r * 1.05] })
-        scl = r
-      } else if (count === 3) {
-        const r = R * 0.56
-        const a = R - r
-        const dirs = [
-          new THREE.Vector3(1, 0, 0),
-          new THREE.Vector3(-0.5, 0, Math.sqrt(3) / 2),
-          new THREE.Vector3(-0.5, 0, -Math.sqrt(3) / 2),
-        ]
-        for (const ddir of dirs) {
-          const pos = ddir.clone().normalize().multiplyScalar(a * 0.98)
-          cells.push({ position: pos, lineage: 'undetermined', scale: [r * 1.06, r, r * 1.06] })
+
+      // Division animation: if we're transitioning between stages, show division in progress
+      if (isDividing && effectiveS0.cellCount < effectiveS1.cellCount) {
+        const divisionProgress = (alpha - 0.3) / 0.4  // normalize to 0-1 during division window
+        const oldCount = effectiveS0.cellCount
+        const newCount = effectiveS1.cellCount
+
+        // Simple division: show cells splitting
+        if (oldCount === 1 && newCount === 2) {
+          // Single cell dividing into two
+          const separationDist = 0.4 * R * divisionProgress
+          const divisionScale = 0.8 + 0.2 * (1 - divisionProgress) // Start larger, normalize as they separate
+          const r = R * 0.5 * divisionScale
+
+          cells.push({
+            position: new THREE.Vector3(0, separationDist, 0),
+            lineage: 'undetermined',
+            scale: [r * 1.05, r * 1.15, r * 1.05]
+          })
+          cells.push({
+            position: new THREE.Vector3(0, -separationDist, 0),
+            lineage: 'undetermined',
+            scale: [r * 1.05, r * 1.15, r * 1.05]
+          })
+          scl = r
+        } else if (oldCount === 2 && newCount === 4) {
+          // Two cells each dividing into two
+          const separationDist = 0.3 * R * divisionProgress
+          const r = R * 0.45
+
+          // First original cell divides
+          cells.push({
+            position: new THREE.Vector3(-separationDist, R * 0.3, 0),
+            lineage: 'undetermined',
+            scale: [r * 1.04, r * 1.15, r * 1.04]
+          })
+          cells.push({
+            position: new THREE.Vector3(separationDist, R * 0.3, 0),
+            lineage: 'undetermined',
+            scale: [r * 1.04, r * 1.15, r * 1.04]
+          })
+
+          // Second original cell divides
+          cells.push({
+            position: new THREE.Vector3(-separationDist, -R * 0.3, 0),
+            lineage: 'undetermined',
+            scale: [r * 1.04, r * 1.15, r * 1.04]
+          })
+          cells.push({
+            position: new THREE.Vector3(separationDist, -R * 0.3, 0),
+            lineage: 'undetermined',
+            scale: [r * 1.04, r * 1.15, r * 1.04]
+          })
+          scl = r
+        } else {
+          // Fallback to normal positioning for other cases
+          count = newCount
         }
-        scl = r
-      } else if (count === 4) {
-        const r = R * 0.45
-        const a = (R - r) * 0.98
-        const dirs = [
-          new THREE.Vector3(1, 1, 1).normalize(),
-          new THREE.Vector3(-1, 1, -1).normalize(),
-          new THREE.Vector3(1, -1, -1).normalize(),
-          new THREE.Vector3(-1, -1, 1).normalize(),
-        ]
-        for (const dir of dirs) {
-          const pos = dir.clone().multiplyScalar(a)
-          const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir)
-          cells.push({ position: pos, lineage: 'undetermined', quaternion: q, scale: [r * 1.04, r * 1.15, r * 1.04] })
+      } else {
+        // Normal static cell positioning
+        if (count === 1) {
+          const r = R * 0.98
+          cells.push({ position: new THREE.Vector3(0, 0, 0), lineage: 'undetermined', scale: [r * 1.02, r, r * 1.02] })
+          scl = r
+        } else if (count === 2) {
+          const r = R * 0.5 * 0.99
+          const d = R - r
+          cells.push({ position: new THREE.Vector3(0, d, 0), lineage: 'undetermined', scale: [r * 1.05, r * 1.15, r * 1.05] })
+          cells.push({ position: new THREE.Vector3(0, -d, 0), lineage: 'undetermined', scale: [r * 1.05, r * 1.15, r * 1.05] })
+          scl = r
+        } else if (count === 3) {
+          const r = R * 0.56
+          const a = R - r
+          const dirs = [
+            new THREE.Vector3(1, 0, 0),
+            new THREE.Vector3(-0.5, 0, Math.sqrt(3) / 2),
+            new THREE.Vector3(-0.5, 0, -Math.sqrt(3) / 2),
+          ]
+          for (const ddir of dirs) {
+            const pos = ddir.clone().normalize().multiplyScalar(a * 0.98)
+            cells.push({ position: pos, lineage: 'undetermined', scale: [r * 1.06, r, r * 1.06] })
+          }
+          scl = r
+        } else if (count === 4) {
+          const r = R * 0.45
+          const a = (R - r) * 0.98
+          const dirs = [
+            new THREE.Vector3(1, 1, 1).normalize(),
+            new THREE.Vector3(-1, 1, -1).normalize(),
+            new THREE.Vector3(1, -1, -1).normalize(),
+            new THREE.Vector3(-1, -1, 1).normalize(),
+          ]
+          for (const dir of dirs) {
+            const pos = dir.clone().multiplyScalar(a)
+            const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir)
+            cells.push({ position: pos, lineage: 'undetermined', quaternion: q, scale: [r * 1.04, r * 1.15, r * 1.04] })
+          }
+          scl = r
         }
-        scl = r
       }
     }
+
 
     // Lightweight relaxation for overlap and wall constraint
     const iterations = active.includes('AURKA_inhibit') ? 2 : avgDay < 4 ? 6 : 3
@@ -260,7 +338,7 @@ export function EmbryoCanvas() {
       }
     }
 
-    return { cells, scale: scl, embryoRadius }
+    return { cells, scale: scl, embryoRadius, isDividing }
   }, [stages, t, active, perts])
 
   return (
@@ -299,14 +377,19 @@ export function EmbryoCanvas() {
         {visibility.TE && (
           <Instances limit={256}>
             <sphereGeometry args={[1, 22, 22]} />
-            <meshPhongMaterial
+            <meshPhysicalMaterial
               color={'#34d399'}
               transparent
-              opacity={0.78}
-              shininess={30}
-              specular={'#e6f0ff'}
+              opacity={0.65}
+              roughness={0.3}
+              metalness={0.1}
+              transmission={0.15}
+              thickness={0.8}
+              ior={1.4}
+              clearcoat={0.8}
+              clearcoatRoughness={0.2}
               side={THREE.DoubleSide}
-              depthWrite={true}
+              depthWrite={false}
             />
             {cells
               .filter((c) => c.lineage === 'TE')
@@ -333,14 +416,19 @@ export function EmbryoCanvas() {
         {visibility.ICM && (
           <Instances limit={256}>
             <sphereGeometry args={[1, 22, 22]} />
-            <meshPhongMaterial
+            <meshPhysicalMaterial
               color={'#f59e0b'}
               transparent
-              opacity={0.78}
-              shininess={30}
-              specular={'#e6f0ff'}
+              opacity={0.65}
+              roughness={0.3}
+              metalness={0.1}
+              transmission={0.15}
+              thickness={0.8}
+              ior={1.4}
+              clearcoat={0.8}
+              clearcoatRoughness={0.2}
               side={THREE.DoubleSide}
-              depthWrite={true}
+              depthWrite={false}
             />
             {cells
               .filter((c) => c.lineage === 'ICM')
@@ -367,14 +455,19 @@ export function EmbryoCanvas() {
         {visibility.undetermined && (
           <Instances limit={256}>
             <sphereGeometry args={[1, 22, 22]} />
-            <meshPhongMaterial
+            <meshPhysicalMaterial
               color={'#93c5fd'}
               transparent
-              opacity={0.78}
-              shininess={30}
-              specular={'#e6f0ff'}
+              opacity={0.65}
+              roughness={0.3}
+              metalness={0.1}
+              transmission={0.15}
+              thickness={0.8}
+              ior={1.4}
+              clearcoat={0.8}
+              clearcoatRoughness={0.2}
               side={THREE.DoubleSide}
-              depthWrite={true}
+              depthWrite={false}
             />
             {cells
               .filter((c) => c.lineage === 'undetermined')

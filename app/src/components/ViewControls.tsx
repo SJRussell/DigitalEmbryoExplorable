@@ -4,26 +4,98 @@ export default function ViewControls() {
   const vis = useStore((s) => s.visibility)
   const toggle = useStore((s) => s.toggleVisibility)
 
+  const ToggleSwitch = ({ checked, onChange, label, color = '#00d4ff' }: {
+    checked: boolean
+    onChange: () => void
+    label: string
+    color?: string
+  }) => (
+    <label style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '8px 0',
+      cursor: 'pointer'
+    }}>
+      <span style={{
+        color: '#e5e7eb',
+        fontSize: '13px',
+        fontWeight: '500'
+      }}>
+        {label}
+      </span>
+      <div
+        onClick={onChange}
+        style={{
+          width: '40px',
+          height: '20px',
+          borderRadius: '10px',
+          background: checked ? `${color}33` : 'rgba(75, 85, 99, 0.3)',
+          border: `1px solid ${checked ? `${color}66` : 'rgba(75, 85, 99, 0.5)'}`,
+          position: 'relative',
+          transition: 'all 0.2s ease',
+          cursor: 'pointer'
+        }}
+      >
+        <div style={{
+          width: '16px',
+          height: '16px',
+          borderRadius: '8px',
+          background: checked ? color : 'rgba(156, 163, 175, 0.8)',
+          position: 'absolute',
+          top: '1px',
+          left: checked ? '21px' : '1px',
+          transition: 'all 0.2s ease',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)'
+        }} />
+      </div>
+    </label>
+  )
+
   return (
-    <div style={{ padding: 12 }}>
-      <div style={{ marginBottom: 8, color: '#e5e5e5', fontWeight: 600 }}>View Controls</div>
-      <div style={{ display: 'grid', gap: 8 }}>
-        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span id="vc-te">Show TE</span>
-          <input aria-labelledby="vc-te" role="switch" aria-checked={vis.TE} type="checkbox" checked={vis.TE} onChange={() => toggle('TE')} />
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span id="vc-icm">Show ICM</span>
-          <input aria-labelledby="vc-icm" role="switch" aria-checked={vis.ICM} type="checkbox" checked={vis.ICM} onChange={() => toggle('ICM')} />
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span id="vc-und">Show Undetermined</span>
-          <input aria-labelledby="vc-und" role="switch" aria-checked={vis.undetermined} type="checkbox" checked={vis.undetermined} onChange={() => toggle('undetermined')} />
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span id="vc-zona">Show Zona</span>
-          <input aria-labelledby="vc-zona" role="switch" aria-checked={vis.zona} type="checkbox" checked={vis.zona} onChange={() => toggle('zona')} />
-        </label>
+    <div style={{
+      padding: '16px',
+      borderBottom: '1px solid rgba(0, 212, 255, 0.1)'
+    }}>
+      <div style={{
+        marginBottom: 12,
+        color: 'rgba(0, 212, 255, 0.8)',
+        fontWeight: 600,
+        fontSize: '14px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px'
+      }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" opacity="0.7">
+          <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+        </svg>
+        Layer Controls
+      </div>
+      <div style={{ display: 'grid', gap: 4 }}>
+        <ToggleSwitch
+          checked={vis.TE}
+          onChange={() => toggle('TE')}
+          label="Trophectoderm (TE)"
+          color="#00ff88"
+        />
+        <ToggleSwitch
+          checked={vis.ICM}
+          onChange={() => toggle('ICM')}
+          label="Inner Cell Mass (ICM)"
+          color="#ff9500"
+        />
+        <ToggleSwitch
+          checked={vis.undetermined}
+          onChange={() => toggle('undetermined')}
+          label="Undetermined Cells"
+          color="#00d4ff"
+        />
+        <ToggleSwitch
+          checked={vis.zona}
+          onChange={() => toggle('zona')}
+          label="Zona Pellucida"
+          color="#a78bfa"
+        />
       </div>
     </div>
   )

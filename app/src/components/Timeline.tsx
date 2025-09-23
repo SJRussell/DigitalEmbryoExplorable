@@ -31,39 +31,194 @@ export function Timeline() {
     return () => clearInterval(id)
   }, [playing, t, stages.length, speed, setT, pause])
 
-  if (!stages.length) return <div style={{ padding: 8, color: '#e5e5e5' }}>Loading stages…</div>
+  if (!stages.length) return (
+    <div style={{ padding: 16, color: 'rgba(0, 212, 255, 0.6)', fontSize: 13 }}>
+      Loading temporal control system…
+    </div>
+  )
 
   return (
-    <div style={{ padding: 8 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#e5e5e5' }}>
-        <span style={{ fontWeight: 600 }}>Stage: {stage?.id}</span>
-        <span>Day {stage?.day}</span>
+    <div style={{ padding: '16px 20px', background: 'rgba(10, 14, 39, 0.4)' }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '12px'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px'
+        }}>
+          <div style={{
+            color: '#f8fafc',
+            fontWeight: 600,
+            fontSize: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" opacity="0.7">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15V7l6 5-6 5z"/>
+            </svg>
+            Temporal Control
+          </div>
+          <div style={{
+            background: 'rgba(0, 212, 255, 0.1)',
+            color: '#00d4ff',
+            padding: '2px 8px',
+            borderRadius: '12px',
+            fontSize: '11px',
+            fontWeight: '500',
+            border: '1px solid rgba(0, 212, 255, 0.2)'
+          }}>
+            {stage?.id.toUpperCase()}
+          </div>
+        </div>
+        <div style={{
+          color: 'rgba(0, 212, 255, 0.7)',
+          fontSize: '12px',
+          fontFamily: 'ui-monospace, Monaco, "Cascadia Code", "Segoe UI Mono", Consolas, monospace'
+        }}>
+          E{stage?.day} • Development Day {stage?.day}
+        </div>
       </div>
-      <div style={{ display: 'flex', gap: 8, margin: '6px 0' }}>
+
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: '14px' }}>
         <button
           onClick={() => (playing ? pause() : play())}
           aria-pressed={playing}
           aria-label={playing ? 'Pause timeline (Space)' : 'Play timeline (Space)'}
           title={playing ? 'Pause (Space)' : 'Play (Space)'}
-          style={{ padding: '6px 10px', borderRadius: 8, background: '#111827', color: '#e5e5e5', border: '1px solid #374151' }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '8px 14px',
+            borderRadius: '6px',
+            background: playing ? 'rgba(255, 149, 0, 0.15)' : 'rgba(0, 212, 255, 0.1)',
+            color: playing ? '#ff9500' : '#00d4ff',
+            border: `1px solid ${playing ? 'rgba(255, 149, 0, 0.3)' : 'rgba(0, 212, 255, 0.3)'}`,
+            fontSize: '12px',
+            fontWeight: '500',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            if (playing) {
+              e.currentTarget.style.background = 'rgba(255, 149, 0, 0.25)'
+              e.currentTarget.style.borderColor = 'rgba(255, 149, 0, 0.4)'
+            } else {
+              e.currentTarget.style.background = 'rgba(0, 212, 255, 0.2)'
+              e.currentTarget.style.borderColor = 'rgba(0, 212, 255, 0.4)'
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (playing) {
+              e.currentTarget.style.background = 'rgba(255, 149, 0, 0.15)'
+              e.currentTarget.style.borderColor = 'rgba(255, 149, 0, 0.3)'
+            } else {
+              e.currentTarget.style.background = 'rgba(0, 212, 255, 0.1)'
+              e.currentTarget.style.borderColor = 'rgba(0, 212, 255, 0.3)'
+            }
+          }}
         >
+          {playing ? (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+          ) : (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+            </svg>
+          )}
           {playing ? 'Pause' : 'Play'}
         </button>
+        <div style={{
+          color: 'rgba(156, 163, 175, 0.8)',
+          fontSize: '11px',
+          fontFamily: 'ui-monospace, Monaco, "Cascadia Code", "Segoe UI Mono", Consolas, monospace'
+        }}>
+          Progress: {Math.round((t / (stages.length - 1)) * 100)}%
+        </div>
       </div>
-      <input
-        type="range"
-        min={0}
-        max={Math.max(0, stages.length - 1)}
-        step={0.01}
-        value={t}
-        onChange={(e) => setT(Number(e.target.value))}
-        aria-label="Development timeline"
-        style={{ width: '100%' }}
-      />
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#a3a3a3' }}>
-        {stages.map((s) => (
-          <span key={s.id}>{s.day}</span>
-        ))}
+
+      <div style={{ position: 'relative', marginBottom: '8px' }}>
+        <input
+          type="range"
+          min={0}
+          max={Math.max(0, stages.length - 1)}
+          step={0.01}
+          value={t}
+          onChange={(e) => setT(Number(e.target.value))}
+          aria-label="Development timeline"
+          style={{
+            width: '100%',
+            height: '6px',
+            background: 'rgba(55, 65, 81, 0.4)',
+            borderRadius: '3px',
+            appearance: 'none',
+            cursor: 'pointer'
+          }}
+        />
+        <div style={{
+          position: 'absolute',
+          top: '10px',
+          left: 0,
+          right: 0,
+          display: 'flex',
+          justifyContent: 'space-between',
+          pointerEvents: 'none'
+        }}>
+          {stages.map((s, i) => (
+            <div
+              key={s.id}
+              style={{
+                width: '2px',
+                height: '8px',
+                background: i <= Math.floor(t) ? 'rgba(0, 212, 255, 0.6)' : 'rgba(75, 85, 99, 0.4)',
+                borderRadius: '1px'
+              }}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        fontSize: 10,
+        color: 'rgba(156, 163, 175, 0.7)',
+        fontFamily: 'ui-monospace, Monaco, "Cascadia Code", "Segoe UI Mono", Consolas, monospace'
+      }}>
+        {stages.map((s, i) => {
+          const milestones = {
+            'zygote': 'Fertilization',
+            '2-cell': 'First Division',
+            '4-cell': 'EGA Initiation',
+            '8-cell': 'Compaction Begin',
+            'morula': 'Compaction Complete',
+            'blastocyst': 'Blastulation'
+          }
+          const milestone = milestones[s.id as keyof typeof milestones]
+
+          return (
+            <div key={s.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+              <span>E{s.day}</span>
+              {milestone && (
+                <span style={{
+                  fontSize: '8px',
+                  color: i <= Math.floor(t) ? 'rgba(0, 212, 255, 0.6)' : 'rgba(156, 163, 175, 0.4)',
+                  textAlign: 'center',
+                  maxWidth: '40px',
+                  lineHeight: 1.2
+                }}>
+                  {milestone}
+                </span>
+              )}
+            </div>
+          )
+        })}
       </div>
     </div>
   )

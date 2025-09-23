@@ -1,33 +1,107 @@
 import { useMemo } from 'react'
 import { useStore } from '../state/store'
 
-function Sparkline({ series }: { series: number[] }) {
+function Sparkline({ series, color = '#00d4ff' }: { series: number[]; color?: string }) {
   const w = 80
-  const h = 14
+  const h = 16
   if (!series.length) return null
-  const xs = series.map((_, i) => (i / Math.max(1, series.length - 1)) * (w - 2) + 1)
-  const ys = series.map((v) => (1 - v) * (h - 4) + 2)
+  const xs = series.map((_, i) => (i / Math.max(1, series.length - 1)) * (w - 4) + 2)
+  const ys = series.map((v) => (1 - v) * (h - 6) + 3)
   const d = xs.map((x, i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${ys[i].toFixed(1)}`).join(' ')
+
+  // Create gradient for sparkline
+  const gradient = `url(#grad-${color.replace('#', '')})`
+
   return (
     <svg width={w} height={h} style={{ display: 'block' }}>
-      <path d={d} stroke="#22d3ee" strokeWidth={1.5} fill="none" />
+      <defs>
+        <linearGradient id={`grad-${color.replace('#', '')}`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style={{ stopColor: color, stopOpacity: 0.8 }} />
+          <stop offset="100%" style={{ stopColor: color, stopOpacity: 0.2 }} />
+        </linearGradient>
+      </defs>
+      <path
+        d={`${d} L${xs[xs.length - 1]},${h - 2} L${xs[0]},${h - 2} Z`}
+        fill={gradient}
+        opacity={0.3}
+      />
+      <path d={d} stroke={color} strokeWidth={1.5} fill="none" />
+      {xs.map((x, i) => (
+        <circle key={i} cx={x} cy={ys[i]} r="1.5" fill={color} opacity={0.8} />
+      ))}
     </svg>
   )
 }
 
-function Bar({ label, value, series }: { label: string; value: number; series: number[] }) {
+function Bar({ label, value, series, color = '#00d4ff' }: {
+  label: string
+  value: number
+  series: number[]
+  color?: string
+}) {
   const pct = Math.round(value * 100)
+  const intensity = value > 0.7 ? 'high' : value > 0.4 ? 'medium' : 'low'
+
   return (
-    <div style={{ marginBottom: 8 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#e5e5e5', alignItems: 'center' }}>
-        <span>{label}</span>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-          <Sparkline series={series} />
-          <span style={{ color: '#a3a3a3', minWidth: 28, textAlign: 'right' }}>{pct}%</span>
-        </span>
+    <div style={{
+      marginBottom: 10,
+      padding: '8px 10px',
+      background: 'rgba(55, 65, 81, 0.15)',
+      borderRadius: '6px',
+      border: '1px solid rgba(75, 85, 99, 0.2)'
+    }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '6px'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px'
+        }}>
+          <span style={{
+            color: '#e5e7eb',
+            fontSize: '13px',
+            fontWeight: '500'
+          }}>
+            {label}
+          </span>
+          <div style={{
+            width: '6px',
+            height: '6px',
+            borderRadius: '3px',
+            background: color,
+            opacity: intensity === 'high' ? 1 : intensity === 'medium' ? 0.6 : 0.3
+          }} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Sparkline series={series} color={color} />
+          <span style={{
+            color: color,
+            fontSize: '12px',
+            fontWeight: '600',
+            minWidth: '32px',
+            textAlign: 'right',
+            fontFamily: 'ui-monospace, Monaco, "Cascadia Code", "Segoe UI Mono", Consolas, monospace'
+          }}>
+            {pct}%
+          </span>
+        </div>
       </div>
-      <div style={{ background: '#1f2937', borderRadius: 6, overflow: 'hidden' }}>
-        <div style={{ width: `${pct}%`, background: '#22d3ee', height: 8 }} />
+      <div style={{
+        background: 'rgba(31, 41, 55, 0.6)',
+        borderRadius: '4px',
+        overflow: 'hidden',
+        height: '6px'
+      }}>
+        <div style={{
+          width: `${pct}%`,
+          background: `linear-gradient(90deg, ${color}dd 0%, ${color} 100%)`,
+          height: '100%',
+          transition: 'width 0.3s ease'
+        }} />
       </div>
     </div>
   )
@@ -72,33 +146,129 @@ export function GenePanel() {
     return out
   }, [expressions, selected, stages])
 
+  // Gene-specific colors for better visualization
+  const geneColors: Record<string, string> = {
+    'GATA3': '#00ff88', // Success green for TE marker
+    'CDX2': '#00ff88',  // Success green for TE marker
+    'KRT18': '#00ff88', // Success green for TE marker
+    'EPCAM': '#00ff88', // Success green for TE marker
+    'OCT4': '#ff9500',  // Amber for ICM marker
+    'NANOG': '#ff9500', // Amber for ICM marker
+    'SOX2': '#ff9500',  // Amber for ICM marker
+    'POU5F1': '#ff9500' // Amber for ICM marker
+  }
+
   return (
-    <div style={{ padding: 12 }}>
-      <div style={{ marginBottom: 8, color: '#e5e5e5', fontWeight: 600 }}>Lineage Markers</div>
-      <div style={{ marginBottom: 6, fontSize: 12, color: '#9ca3af' }}>
-        Selected: {selected ?? '—'}
+    <div style={{
+      padding: '16px',
+      borderBottom: '1px solid rgba(0, 212, 255, 0.1)'
+    }}>
+      <div style={{
+        marginBottom: 12,
+        color: 'rgba(0, 212, 255, 0.8)',
+        fontWeight: 600,
+        fontSize: '14px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px'
+      }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" opacity="0.7">
+          <path d="M12 2l1 2h8l-2 2v6c0 5.55-3.84 10.74-9 12-5.16-1.26-9-6.45-9-12V6l-2-2h8l1-2z"/>
+        </svg>
+        Molecular Profile
       </div>
-      <div style={{ marginBottom: 12 }}>
-        <label style={{ color: '#a3a3a3', fontSize: 12 }}>Lineage</label>
+
+      <div style={{
+        marginBottom: 14,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '4px'
+      }}>
+        <label style={{
+          color: 'rgba(156, 163, 175, 0.8)',
+          fontSize: '11px',
+          fontWeight: '500',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px'
+        }}>
+          Selected Lineage
+        </label>
         <select
           value={selected ?? lineageOptions[0]}
           onChange={(e) => setLineage(e.target.value)}
-          style={{ width: '100%', padding: 8, background: '#111827', color: '#e5e5e5', borderRadius: 8, border: '1px solid #374151' }}
+          style={{
+            width: '100%',
+            padding: '8px 10px',
+            background: 'rgba(31, 41, 55, 0.6)',
+            color: '#e5e7eb',
+            borderRadius: '6px',
+            border: '1px solid rgba(75, 85, 99, 0.4)',
+            fontSize: '13px',
+            fontWeight: '500',
+            cursor: 'pointer'
+          }}
         >
           {lineageOptions.map((l) => (
-            <option key={l} value={l}>
-              {l}
+            <option key={l} value={l} style={{ background: '#1f2937' }}>
+              {l.toUpperCase()}
             </option>
           ))}
         </select>
       </div>
-      <div>
+
+      <div style={{
+        marginBottom: '8px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px'
+      }}>
+        <div style={{
+          color: 'rgba(156, 163, 175, 0.8)',
+          fontSize: '11px',
+          fontWeight: '500',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px'
+        }}>
+          Expression Dynamics
+        </div>
+        {selected && (
+          <div style={{
+            background: `${geneColors[Object.keys(expr[0]?.genes || {})[0]] || '#00d4ff'}33`,
+            color: geneColors[Object.keys(expr[0]?.genes || {})[0]] || '#00d4ff',
+            padding: '1px 6px',
+            borderRadius: '8px',
+            fontSize: '10px',
+            fontWeight: '600',
+            border: `1px solid ${geneColors[Object.keys(expr[0]?.genes || {})[0]] || '#00d4ff'}66`
+          }}>
+            {selected.toUpperCase()}
+          </div>
+        )}
+      </div>
+
+      <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
         {expr.length ? (
           Object.entries(expr[0].genes).map(([g, v]) => (
-            <Bar key={g} label={g} value={v} series={seriesByGene[g] ?? []} />
+            <Bar
+              key={g}
+              label={g}
+              value={v}
+              series={seriesByGene[g] ?? []}
+              color={geneColors[g] || '#00d4ff'}
+            />
           ))
         ) : (
-          <div style={{ color: '#9ca3af' }}>No expression data for this selection.</div>
+          <div style={{
+            color: 'rgba(156, 163, 175, 0.6)',
+            fontSize: '13px',
+            textAlign: 'center',
+            padding: '20px 10px',
+            background: 'rgba(55, 65, 81, 0.1)',
+            borderRadius: '6px',
+            border: '1px solid rgba(75, 85, 99, 0.2)'
+          }}>
+            No molecular data available for this selection
+          </div>
         )}
       </div>
     </div>

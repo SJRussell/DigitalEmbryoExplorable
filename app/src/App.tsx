@@ -8,6 +8,7 @@ import PerturbationPanel from './components/PerturbationPanel'
 import { Suspense, lazy } from 'react'
 const AboutModal = lazy(() => import('./components/AboutModal'))
 import ViewControls from './components/ViewControls'
+import RiskAssessment from './components/RiskAssessment'
 
 function App() {
   const [aboutOpen, setAboutOpen] = useState(false)
@@ -80,37 +81,148 @@ function App() {
   }, [t, vis.TE, vis.ICM, vis.undetermined, vis.zona, perts])
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#e5e5e5' }}>
-      <header style={{ padding: '12px 16px', borderBottom: '1px solid #1f2937' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+    <div style={{ minHeight: '100vh', background: '#0a0e27', color: '#e5e7eb' }}>
+      <header style={{
+        padding: '16px 20px',
+        borderBottom: '1px solid rgba(0, 212, 255, 0.1)',
+        background: 'rgba(10, 14, 39, 0.8)',
+        backdropFilter: 'blur(8px)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <div>
-            <div style={{ fontWeight: 700 }}>Digital Embryo Explorable (MVP)</div>
-            <div style={{ fontSize: 12, color: '#9ca3af' }}>React • TypeScript • three.js</div>
+            <div style={{
+              fontWeight: 600,
+              fontSize: '18px',
+              color: '#f8fafc',
+              marginBottom: '2px'
+            }}>
+              Digital Embryo Platform
+            </div>
+            <div style={{
+              fontSize: 12,
+              color: 'rgba(0, 212, 255, 0.7)',
+              fontFamily: 'ui-monospace, Monaco, "Cascadia Code", "Segoe UI Mono", Consolas, monospace'
+            }}>
+              Interactive Development Observatory • MVP v1.0
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button aria-label="Reset timeline and view" title="Reset (R)" onClick={() => reset()} style={{ padding: '6px 10px', borderRadius: 8, background: '#111827', color: '#e5e5e5', border: '1px solid #374151' }}>Reset</button>
-            <button aria-label="About this demo" title="About" onClick={() => setAboutOpen(true)} style={{ padding: '6px 10px', borderRadius: 8, background: '#111827', color: '#e5e5e5', border: '1px solid #374151' }}>About</button>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              aria-label="Reset timeline and view"
+              title="Reset (R)"
+              onClick={() => reset()}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '6px',
+                background: 'rgba(0, 212, 255, 0.1)',
+                color: '#00d4ff',
+                border: '1px solid rgba(0, 212, 255, 0.3)',
+                fontSize: '13px',
+                fontWeight: '500',
+                transition: 'all 0.2s ease',
+                cursor: 'pointer'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(0, 212, 255, 0.2)'
+                e.currentTarget.style.borderColor = 'rgba(0, 212, 255, 0.5)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(0, 212, 255, 0.1)'
+                e.currentTarget.style.borderColor = 'rgba(0, 212, 255, 0.3)'
+              }}
+            >
+              Reset
+            </button>
+            <button
+              aria-label="About this demo"
+              title="About"
+              onClick={() => setAboutOpen(true)}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '6px',
+                background: 'rgba(55, 65, 81, 0.4)',
+                color: '#e5e7eb',
+                border: '1px solid rgba(75, 85, 99, 0.5)',
+                fontSize: '13px',
+                fontWeight: '500',
+                transition: 'all 0.2s ease',
+                cursor: 'pointer'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(75, 85, 99, 0.4)'
+                e.currentTarget.style.borderColor = 'rgba(107, 114, 128, 0.7)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(55, 65, 81, 0.4)'
+                e.currentTarget.style.borderColor = 'rgba(75, 85, 99, 0.5)'
+              }}
+            >
+              About
+            </button>
           </div>
         </div>
       </header>
       {active.length > 0 && (
-        <div aria-live="polite" style={{ background: '#0f766e', color: 'white', padding: '6px 16px', fontSize: 14 }}>
-          Simulation Mode: For research demonstration only. Not for clinical use.
+        <div aria-live="polite" style={{
+          background: 'linear-gradient(90deg, rgba(255, 149, 0, 0.15) 0%, rgba(255, 149, 0, 0.1) 100%)',
+          color: '#ff9500',
+          padding: '10px 20px',
+          fontSize: 13,
+          fontWeight: '500',
+          borderBottom: '1px solid rgba(255, 149, 0, 0.2)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+          </svg>
+          Perturbation Laboratory Active • In-silico simulation for research demonstration only
         </div>
       )}
       <div style={{ display: 'grid', gridTemplateRows: 'auto 1fr', height: 'calc(100vh - 70px)' }}>
-        <div style={{ borderBottom: '1px solid #1f2937' }}>
+        <div style={{ borderBottom: '1px solid rgba(0, 212, 255, 0.1)' }}>
           <Timeline />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 0 }}>
-          <div style={{ padding: 12 }}>
-            <div style={{ marginBottom: 8, color: '#a3a3a3', fontSize: 12 }}>3D Embryo Visualization — {stage?.id}</div>
-            <div style={{ height: 'calc(100vh - 170px)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 0 }}>
+          <div style={{
+            padding: '20px',
+            background: 'rgba(10, 14, 39, 0.3)',
+            position: 'relative'
+          }}>
+            <div style={{
+              marginBottom: 12,
+              color: 'rgba(0, 212, 255, 0.8)',
+              fontSize: 13,
+              fontWeight: '600',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" opacity="0.7">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+              Embryo Observatory • {stage?.id || 'Loading...'}
+            </div>
+            <div style={{
+              height: 'calc(100vh - 190px)',
+              border: '1px solid rgba(0, 212, 255, 0.15)',
+              borderRadius: '8px',
+              overflow: 'hidden',
+              background: 'radial-gradient(ellipse at center, rgba(0, 212, 255, 0.03) 0%, rgba(10, 14, 39, 0.8) 70%)'
+            }}>
               <EmbryoCanvas />
             </div>
           </div>
-          <aside style={{ borderLeft: '1px solid #1f2937' }}>
+          <aside style={{
+            borderLeft: '1px solid rgba(0, 212, 255, 0.1)',
+            background: 'rgba(10, 14, 39, 0.6)',
+            backdropFilter: 'blur(4px)',
+            overflowY: 'auto',
+            maxHeight: '100vh'
+          }}>
             <ViewControls />
+            <RiskAssessment />
             <GenePanel />
             <PerturbationPanel />
           </aside>
