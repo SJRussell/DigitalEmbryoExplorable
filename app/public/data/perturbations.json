@@ -1,0 +1,13 @@
+{
+  "AURKA_inhibit": {
+    "label": "Inhibit AURKA",
+    "description": "Models spindle and microtubule defects; increases cleavage arrest probability and delays compaction.",
+    "effects": { "cleavageArrestProb": 0.4, "compactionDelayFactor": 1.5 }
+  },
+  "glycolysis_impair": {
+    "label": "Impair Glycolysis",
+    "description": "Simulates metabolic dysfunction; reduces division rate and blastocoel expansion.",
+    "effects": { "divisionRateFactor": 0.7, "blastocoelSizeFactor": 0.8 }
+  }
+}
+

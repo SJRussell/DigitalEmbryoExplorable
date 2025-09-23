@@ -1,0 +1,9 @@
+[
+  { "id": "zygote", "day": 0, "cellCount": 1, "lineages": { "undetermined": 1.0 } },
+  { "id": "two_cell", "day": 1, "cellCount": 2, "lineages": { "undetermined": 1.0 } },
+  { "id": "four_cell", "day": 2, "cellCount": 4, "lineages": { "undetermined": 1.0 } },
+  { "id": "eight_cell", "day": 3, "cellCount": 8, "lineages": { "undetermined": 1.0 } },
+  { "id": "morula", "day": 4, "cellCount": 16, "lineages": { "undetermined": 1.0 } },
+  { "id": "blastocyst", "day": 5, "cellCount": 120, "lineages": { "TE": 0.75, "ICM": 0.25 } }
+]
+

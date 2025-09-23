@@ -1,0 +1,9 @@
+[
+  { "stage": "zygote", "lineage": "undetermined", "genes": { "DUX4": 0.7, "LEUTX": 0.6, "ZSCAN4": 0.5, "KLF17": 0.35 } },
+  { "stage": "two_cell", "lineage": "undetermined", "genes": { "DUX4": 0.8, "LEUTX": 0.7, "ZSCAN4": 0.6, "KLF17": 0.45 } },
+  { "stage": "four_cell", "lineage": "undetermined", "genes": { "CDH1": 0.2, "PARD6B": 0.15, "TJP1": 0.18, "EPCAM": 0.12 } },
+  { "stage": "eight_cell", "lineage": "undetermined", "genes": { "CDH1": 0.3, "PARD6B": 0.2, "TJP1": 0.25, "EPCAM": 0.2 } },
+  { "stage": "morula", "lineage": "undetermined", "genes": { "CDH1": 0.7, "PARD6B": 0.5, "TJP1": 0.55, "EPCAM": 0.4 } },
+  { "stage": "blastocyst", "lineage": "TE", "genes": { "GATA3": 0.9, "CDX2": 0.8, "KRT18": 0.75, "EPCAM": 0.7, "OCT4": 0.1 } },
+  { "stage": "blastocyst", "lineage": "ICM", "genes": { "NANOG": 0.85, "POU5F1": 0.88, "SOX2": 0.8, "GDF3": 0.7, "KLF17": 0.6 } }
+]
