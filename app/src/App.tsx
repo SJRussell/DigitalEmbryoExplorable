@@ -1,14 +1,16 @@
 import './App.css'
 import { useEffect, useState } from 'react'
 import { useStore } from './state/store'
-import Timeline from './components/Timeline'
-import EmbryoCanvas from './components/EmbryoCanvas'
-import GenePanel from './components/GenePanel'
-import PerturbationPanel from './components/PerturbationPanel'
 import { Suspense, lazy } from 'react'
+
+// Lazy load components for code splitting
+const Timeline = lazy(() => import('./components/Timeline'))
+const EmbryoCanvas = lazy(() => import('./components/EmbryoCanvas'))
+const GenePanel = lazy(() => import('./components/GenePanel'))
+const PerturbationPanel = lazy(() => import('./components/PerturbationPanel'))
 const AboutModal = lazy(() => import('./components/AboutModal'))
-import ViewControls from './components/ViewControls'
-import RiskAssessment from './components/RiskAssessment'
+const LayerControlsOverlay = lazy(() => import('./components/LayerControlsOverlay'))
+const RiskAssessment = lazy(() => import('./components/RiskAssessment'))
 
 function App() {
   const [aboutOpen, setAboutOpen] = useState(false)
@@ -182,7 +184,13 @@ function App() {
       )}
       <div style={{ display: 'grid', gridTemplateRows: 'auto 1fr', height: 'calc(100vh - 70px)' }}>
         <div style={{ borderBottom: '1px solid rgba(0, 212, 255, 0.1)' }}>
-          <Timeline />
+          <Suspense fallback={
+            <div style={{ padding: 16, color: 'rgba(0, 212, 255, 0.6)', fontSize: 13 }}>
+              Loading temporal control system…
+            </div>
+          }>
+            <Timeline />
+          </Suspense>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 0 }}>
           <div style={{
@@ -209,9 +217,24 @@ function App() {
               border: '1px solid rgba(0, 212, 255, 0.15)',
               borderRadius: '8px',
               overflow: 'hidden',
-              background: 'radial-gradient(ellipse at center, rgba(0, 212, 255, 0.03) 0%, rgba(10, 14, 39, 0.8) 70%)'
+              background: 'radial-gradient(ellipse at center, rgba(0, 212, 255, 0.03) 0%, rgba(10, 14, 39, 0.8) 70%)',
+              position: 'relative'
             }}>
-              <EmbryoCanvas />
+              <Suspense fallback={
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '100%',
+                  color: 'rgba(0, 212, 255, 0.6)',
+                  fontSize: 14
+                }}>
+                  Loading 3D embryo visualization…
+                </div>
+              }>
+                <EmbryoCanvas />
+                <LayerControlsOverlay />
+              </Suspense>
             </div>
           </div>
           <aside style={{
@@ -221,10 +244,15 @@ function App() {
             overflowY: 'auto',
             maxHeight: '100vh'
           }}>
-            <ViewControls />
-            <RiskAssessment />
-            <GenePanel />
-            <PerturbationPanel />
+            <Suspense fallback={
+              <div style={{ padding: 16, color: 'rgba(0, 212, 255, 0.6)', fontSize: 13 }}>
+                Loading analysis panels…
+              </div>
+            }>
+              <RiskAssessment />
+              <GenePanel />
+              <PerturbationPanel />
+            </Suspense>
           </aside>
         </div>
       </div>

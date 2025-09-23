@@ -1,5 +1,19 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useStore } from '../state/store'
+
+type DevelopmentalEvent = {
+  name: string
+  description: string
+  time: number
+  category: 'cell_cycle' | 'molecular' | 'morphology' | 'lineage' | 'developmental'
+  significance: 'high' | 'medium' | 'low'
+}
+
+type StageEvents = {
+  stage: string
+  day: number
+  events: DevelopmentalEvent[]
+}
 
 export function Timeline() {
   const stages = useStore((s) => s.stages)
@@ -13,10 +27,27 @@ export function Timeline() {
   const pause = useStore((s) => s.pause)
   const speed = useStore((s) => s.playSpeedMs)
 
+  const [developmentalEvents, setDevelopmentalEvents] = useState<StageEvents[]>([])
+  const [hoveredEvent, setHoveredEvent] = useState<{event: DevelopmentalEvent, position: {x: number, y: number}} | null>(null)
+
   useEffect(() => {
     if (stages.length || loading) return
     void loadData()
   }, [stages.length, loading, loadData])
+
+  // Load developmental events data
+  useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        const response = await fetch('/data/developmental_events.json')
+        const events = await response.json() as StageEvents[]
+        setDevelopmentalEvents(events)
+      } catch (error) {
+        console.warn('Could not load developmental events:', error)
+      }
+    }
+    loadEvents()
+  }, [])
 
   useEffect(() => {
     if (!playing) return
@@ -143,7 +174,7 @@ export function Timeline() {
         </div>
       </div>
 
-      <div style={{ position: 'relative', marginBottom: '8px' }}>
+      <div style={{ position: 'relative', marginBottom: '24px' }}>
         <input
           type="range"
           min={0}
@@ -161,6 +192,8 @@ export function Timeline() {
             cursor: 'pointer'
           }}
         />
+
+        {/* Stage markers */}
         <div style={{
           position: 'absolute',
           top: '10px',
@@ -182,6 +215,54 @@ export function Timeline() {
             />
           ))}
         </div>
+
+        {/* Enhanced event markers */}
+        {developmentalEvents.map((stageEvents, stageIndex) => {
+          const stagePosition = (stageIndex / (stages.length - 1)) * 100;
+          return stageEvents.events.map((event, eventIndex) => {
+            const eventPosition = stagePosition + (event.time * (100 / (stages.length - 1)));
+            const isActive = (stageIndex + event.time) <= t;
+            const categoryColors = {
+              cell_cycle: '#00ff88',
+              molecular: '#ff9500',
+              morphology: '#00d4ff',
+              lineage: '#a78bfa',
+              developmental: '#f59e0b'
+            };
+
+            return (
+              <div
+                key={`${stageIndex}-${eventIndex}`}
+                style={{
+                  position: 'absolute',
+                  left: `${eventPosition}%`,
+                  top: '20px',
+                  transform: 'translateX(-50%)',
+                  pointerEvents: 'auto',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setHoveredEvent({
+                    event,
+                    position: { x: rect.left + rect.width / 2, y: rect.top }
+                  });
+                }}
+                onMouseLeave={() => setHoveredEvent(null)}
+              >
+                <div style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: isActive ? categoryColors[event.category] : 'rgba(75, 85, 99, 0.4)',
+                  border: `2px solid ${isActive ? categoryColors[event.category] : 'rgba(75, 85, 99, 0.6)'}`,
+                  transition: 'all 0.2s ease',
+                  opacity: event.significance === 'high' ? 1 : 0.7
+                }} />
+              </div>
+            );
+          });
+        })}
       </div>
 
       <div style={{
@@ -220,6 +301,84 @@ export function Timeline() {
           )
         })}
       </div>
+
+      {/* Event categories legend */}
+      {developmentalEvents.length > 0 && (
+        <div style={{
+          marginTop: '12px',
+          padding: '8px',
+          background: 'rgba(10, 14, 39, 0.3)',
+          borderRadius: '4px',
+          border: '1px solid rgba(0, 212, 255, 0.1)'
+        }}>
+          <div style={{
+            fontSize: '10px',
+            color: 'rgba(0, 212, 255, 0.8)',
+            fontWeight: '600',
+            marginBottom: '6px'
+          }}>
+            Developmental Events
+          </div>
+          <div style={{
+            display: 'flex',
+            gap: '12px',
+            flexWrap: 'wrap',
+            fontSize: '9px'
+          }}>
+            {[
+              { category: 'cell_cycle', label: 'Cell Division', color: '#00ff88' },
+              { category: 'molecular', label: 'Gene Expression', color: '#ff9500' },
+              { category: 'morphology', label: 'Morphological', color: '#00d4ff' },
+              { category: 'lineage', label: 'Lineage Specification', color: '#a78bfa' },
+              { category: 'developmental', label: 'Developmental', color: '#f59e0b' }
+            ].map(({ category, label, color }) => (
+              <div key={category} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <div style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  background: color
+                }} />
+                <span style={{ color: 'rgba(156, 163, 175, 0.8)' }}>{label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Event tooltip */}
+      {hoveredEvent && (
+        <div style={{
+          position: 'fixed',
+          left: hoveredEvent.position.x,
+          top: hoveredEvent.position.y - 60,
+          transform: 'translateX(-50%)',
+          background: 'rgba(10, 14, 39, 0.95)',
+          backdropFilter: 'blur(8px)',
+          border: '1px solid rgba(0, 212, 255, 0.3)',
+          borderRadius: '6px',
+          padding: '8px 12px',
+          fontSize: '11px',
+          color: '#e5e7eb',
+          zIndex: 1000,
+          maxWidth: '200px',
+          pointerEvents: 'none'
+        }}>
+          <div style={{
+            fontWeight: '600',
+            color: '#00d4ff',
+            marginBottom: '4px'
+          }}>
+            {hoveredEvent.event.name}
+          </div>
+          <div style={{
+            color: 'rgba(156, 163, 175, 0.9)',
+            lineHeight: 1.3
+          }}>
+            {hoveredEvent.event.description}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

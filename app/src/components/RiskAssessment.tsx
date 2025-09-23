@@ -3,6 +3,7 @@ import { useStore } from '../state/store'
 
 export function RiskAssessment() {
   const stage = useStore((s) => s.stages[s.currentStageIndex] ?? null)
+  const stages = useStore((s) => s.stages)
   const activePerturbations = useStore((s) => s.activePerturbations)
   const stageT = useStore((s) => s.stageT)
 
@@ -55,11 +56,23 @@ export function RiskAssessment() {
     const arrestRisk = 1 - successProb
     const manifestDistance = Math.abs(stageT - Math.floor(stageT)) * 20 // Simplified metric
 
+    // Calculate confidence intervals
+    const confidenceLevel = activePerturbations.length > 0 ? 0.65 : 0.85
+    const margin = 0.15 * (1 - confidenceLevel)
+
+    // Time to key milestones
+    const timeToBlastocyst = Math.max(0, (stages.length - 1) - stageT)
+    const estimatedImplantationProb = successProb * 0.7 // Rough estimate
+
     return {
       successProb: Math.max(0.1, Math.min(0.98, successProb)),
       arrestRisk,
       manifestDistance,
-      riskFactors
+      riskFactors,
+      confidenceLevel,
+      confidenceRange: { min: Math.max(0, successProb - margin), max: Math.min(1, successProb + margin) },
+      timeToBlastocyst,
+      estimatedImplantationProb
     }
   }, [stage, activePerturbations, stageT])
 
@@ -156,6 +169,75 @@ export function RiskAssessment() {
           label="Trajectory Confidence"
           color="#00d4ff"
         />
+      </div>
+
+      {/* Enhanced confidence and predictions */}
+      <div style={{
+        background: 'rgba(10, 14, 39, 0.3)',
+        borderRadius: '6px',
+        padding: '10px',
+        marginBottom: '12px',
+        border: '1px solid rgba(0, 212, 255, 0.1)'
+      }}>
+        <div style={{
+          color: 'rgba(0, 212, 255, 0.8)',
+          fontSize: '11px',
+          fontWeight: '600',
+          marginBottom: '8px',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px'
+        }}>
+          Predictive Analysis
+        </div>
+
+        <div style={{ display: 'grid', gap: '6px', fontSize: '11px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: 'rgba(156, 163, 175, 0.9)' }}>Confidence Level:</span>
+            <span style={{
+              color: riskMetrics.confidenceLevel > 0.75 ? '#00ff88' : '#ff9500',
+              fontWeight: '600',
+              fontFamily: 'ui-monospace, Monaco, "Cascadia Code", "Segoe UI Mono", Consolas, monospace'
+            }}>
+              {Math.round(riskMetrics.confidenceLevel * 100)}%
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: 'rgba(156, 163, 175, 0.9)' }}>Range:</span>
+            <span style={{
+              color: '#00d4ff',
+              fontWeight: '500',
+              fontFamily: 'ui-monospace, Monaco, "Cascadia Code", "Segoe UI Mono", Consolas, monospace',
+              fontSize: '10px'
+            }}>
+              {Math.round(riskMetrics.confidenceRange.min * 100)}–{Math.round(riskMetrics.confidenceRange.max * 100)}%
+            </span>
+          </div>
+
+          {riskMetrics.timeToBlastocyst > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ color: 'rgba(156, 163, 175, 0.9)' }}>Time to Blastocyst:</span>
+              <span style={{
+                color: '#a78bfa',
+                fontWeight: '600',
+                fontFamily: 'ui-monospace, Monaco, "Cascadia Code", "Segoe UI Mono", Consolas, monospace'
+              }}>
+                {riskMetrics.timeToBlastocyst.toFixed(1)} stages
+              </span>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: 'rgba(156, 163, 175, 0.9)' }}>Implantation Potential:</span>
+            <span style={{
+              color: riskMetrics.estimatedImplantationProb > 0.5 ? '#00ff88' : '#ff9500',
+              fontWeight: '600',
+              fontFamily: 'ui-monospace, Monaco, "Cascadia Code", "Segoe UI Mono", Consolas, monospace'
+            }}>
+              {Math.round(riskMetrics.estimatedImplantationProb * 100)}%
+            </span>
+          </div>
+        </div>
       </div>
 
       {riskMetrics.riskFactors.length > 0 && (

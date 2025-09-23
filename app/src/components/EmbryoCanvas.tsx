@@ -25,6 +25,7 @@ type Cell = {
   lineage: 'TE' | 'ICM' | 'undetermined'
   scale?: [number, number, number]
   quaternion?: THREE.Quaternion
+  nuclei?: { position: THREE.Vector3; size: number }[]
 }
 
 function prand(i: number) {
@@ -50,14 +51,12 @@ export function EmbryoCanvas() {
   const visibility = useStore((s) => s.visibility)
   const setSelectedLineage = useStore((s) => s.setSelectedLineage)
 
-  const { cells, scale, embryoRadius, isDividing } = useMemo(() => {
+  const { cells, scale, embryoRadius } = useMemo(() => {
     if (!stages.length)
-      return { cells: [] as Cell[], scale: 0.2, embryoRadius: 1.0, isDividing: false }
+      return { cells: [] as Cell[], scale: 0.2, embryoRadius: 1.0 }
     const i0 = Math.floor(t)
     const i1 = Math.min(stages.length - 1, i0 + 1)
     const alpha = t - i0
-    const s0 = stages[i0]
-    const s1 = stages[i1]
 
     // Check for AURKA arrest - should arrest at 2-cell or 4-cell stage
     let maxStageForARRest = stages.length - 1
@@ -75,8 +74,8 @@ export function EmbryoCanvas() {
     const effectiveS0 = stages[effectiveI0]
     const effectiveS1 = stages[effectiveI1]
 
-    // Detect if we're in a division transition
-    const isDividing = alpha > 0.3 && alpha < 0.7 && effectiveS0.cellCount !== effectiveS1.cellCount
+    // Division transition detection
+    const isDividing = alpha > 0.2 && alpha < 0.8 && effectiveS0.cellCount !== effectiveS1.cellCount
 
     // Interpolate total cell count
     let count = Math.max(1, Math.round(lerp(effectiveS0.cellCount, effectiveS1.cellCount, alpha)))
@@ -118,7 +117,13 @@ export function EmbryoCanvas() {
     // TE on a shell
     if (teCount > 0) {
       const tePositions = fibonacciSpherePoints(teCount, embryoRadius - scl * 0.1)
-      for (const p of tePositions) cells.push({ position: p, lineage: 'TE' })
+      for (const p of tePositions) {
+        cells.push({
+          position: p,
+          lineage: 'TE',
+          nuclei: [{ position: new THREE.Vector3(0, 0, 0), size: 0.08 * scl }]
+        })
+      }
     }
 
     // ICM: compact cluster near one pole (inside TE shell)
@@ -140,7 +145,11 @@ export function EmbryoCanvas() {
       const len = pos.length()
       const maxICM = embryoRadius - scl * 1.6
       if (len > maxICM) pos.multiplyScalar(maxICM / (len + 1e-6))
-      cells.push({ position: pos, lineage: 'ICM' })
+      cells.push({
+        position: pos,
+        lineage: 'ICM',
+        nuclei: [{ position: new THREE.Vector3(0, 0, 0), size: 0.09 * scl }]
+      })
     }
 
     // Undetermined: before compaction, distribute to fill zona; after, on a shell
@@ -153,7 +162,11 @@ export function EmbryoCanvas() {
           const jitter = (prand(i + 501) * 0.4 + 0.1) * scl
           const len = p.length() || 1
           const inward = p.clone().multiplyScalar(-jitter / len)
-          cells.push({ position: p.clone().add(inward), lineage: 'undetermined' })
+          cells.push({
+            position: p.clone().add(inward),
+            lineage: 'undetermined',
+            nuclei: [{ position: new THREE.Vector3(0, 0, 0), size: 0.09 * scl }]
+          })
         }
       } else if (avgDay < 4.2) {
         // Morula-like: dense volume packing inside zona (compaction)
@@ -166,11 +179,21 @@ export function EmbryoCanvas() {
           const y = r * Math.sin(phi) * Math.sin(theta)
           const z = r * Math.cos(phi)
           const pos = new THREE.Vector3(x, y, z).multiplyScalar(embryoRadius - scl * 0.2)
-          cells.push({ position: pos, lineage: 'undetermined' })
+          cells.push({
+            position: pos,
+            lineage: 'undetermined',
+            nuclei: [{ position: new THREE.Vector3(0, 0, 0), size: 0.08 * scl }]
+          })
         }
       } else {
         const undet = fibonacciSpherePoints(undCount, embryoRadius - scl * 0.25)
-        for (const p of undet) cells.push({ position: p, lineage: 'undetermined' })
+        for (const p of undet) {
+          cells.push({
+            position: p,
+            lineage: 'undetermined',
+            nuclei: [{ position: new THREE.Vector3(0, 0, 0), size: 0.08 * scl }]
+          })
+        }
       }
     }
 
@@ -179,74 +202,162 @@ export function EmbryoCanvas() {
       const R = embryoRadius
       cells.length = 0
 
-      // Division animation: if we're transitioning between stages, show division in progress
-      if (isDividing && effectiveS0.cellCount < effectiveS1.cellCount) {
-        const divisionProgress = (alpha - 0.3) / 0.4  // normalize to 0-1 during division window
-        const oldCount = effectiveS0.cellCount
-        const newCount = effectiveS1.cellCount
+      // Special handling for 1→2 cell transition
+      if ((effectiveS0.cellCount === 1 && effectiveS1.cellCount === 2) ||
+          (count === 1 && alpha > 0.1) ||
+          (count === 2 && alpha < 0.9)) {
 
-        // Simple division: show cells splitting
-        if (oldCount === 1 && newCount === 2) {
-          // Single cell dividing into two
-          const separationDist = 0.4 * R * divisionProgress
-          const divisionScale = 0.8 + 0.2 * (1 - divisionProgress) // Start larger, normalize as they separate
-          const r = R * 0.5 * divisionScale
+        // Enhanced division detection for 1→2 transition
+        let divisionProgress = 0
+        if (effectiveS0.cellCount === 1 && effectiveS1.cellCount === 2) {
+          // We're definitely in 1→2 transition
+          divisionProgress = alpha
+        } else if (count === 1 && alpha > 0.1) {
+          // Late in zygote stage, prepare for division
+          divisionProgress = (alpha - 0.1) / 0.9
+        } else if (count === 2 && alpha < 0.9) {
+          // Early in 2-cell stage, complete division
+          divisionProgress = 0.5 + (alpha * 0.5)
+        }
 
+        // Clamp division progress
+        divisionProgress = Math.max(0, Math.min(1, divisionProgress))
+
+
+        if (divisionProgress < 0.15) {
+          // Very early: single cell, start nucleus division
+          const nucleusSepar = 0.02 * R * 0.98 * (divisionProgress / 0.15)
+          cells.push({
+            position: new THREE.Vector3(0, 0, 0),
+            lineage: 'undetermined',
+            scale: [R * 0.98 * 1.02, R * 0.98 * (1.0 + divisionProgress * 0.1), R * 0.98 * 1.02],
+            nuclei: divisionProgress > 0.05 ? [
+              { position: new THREE.Vector3(0, nucleusSepar, 0), size: 0.13 * R * 0.98 },
+              { position: new THREE.Vector3(0, -nucleusSepar, 0), size: 0.13 * R * 0.98 }
+            ] : [{ position: new THREE.Vector3(0, 0, 0), size: 0.15 * R * 0.98 }]
+          })
+          scl = R * 0.98
+        } else {
+          // Division proper: two cells start overlapping, separate and shrink
+          const separationProgress = (divisionProgress - 0.15) / 0.85
+
+          // Separation distance: start at 0 (overlapping), end at proper spacing
+          const maxSeparation = R * 0.55 // Final separation for 2-cell stage
+          const separationDist = maxSeparation * Math.pow(separationProgress, 0.5)
+
+          // Cell size: start large (overlapping), shrink to final size
+          const startSize = 0.8  // Large enough to overlap significantly
+          const endSize = 0.48   // Final size that fits in zona when separated
+          const currentSize = lerp(startSize, endSize, Math.pow(separationProgress, 0.4))
+          const r = R * currentSize
+
+          // Two cells separating
           cells.push({
             position: new THREE.Vector3(0, separationDist, 0),
             lineage: 'undetermined',
-            scale: [r * 1.05, r * 1.15, r * 1.05]
+            scale: [r * 1.05, r * 1.15, r * 1.05],
+            nuclei: [{ position: new THREE.Vector3(0, 0, 0), size: 0.13 * r }]
           })
           cells.push({
             position: new THREE.Vector3(0, -separationDist, 0),
             lineage: 'undetermined',
-            scale: [r * 1.05, r * 1.15, r * 1.05]
+            scale: [r * 1.05, r * 1.15, r * 1.05],
+            nuclei: [{ position: new THREE.Vector3(0, 0, 0), size: 0.13 * r }]
           })
           scl = r
-        } else if (oldCount === 2 && newCount === 4) {
-          // Two cells each dividing into two
-          const separationDist = 0.3 * R * divisionProgress
-          const r = R * 0.45
-
-          // First original cell divides
-          cells.push({
-            position: new THREE.Vector3(-separationDist, R * 0.3, 0),
-            lineage: 'undetermined',
-            scale: [r * 1.04, r * 1.15, r * 1.04]
-          })
-          cells.push({
-            position: new THREE.Vector3(separationDist, R * 0.3, 0),
-            lineage: 'undetermined',
-            scale: [r * 1.04, r * 1.15, r * 1.04]
-          })
-
-          // Second original cell divides
-          cells.push({
-            position: new THREE.Vector3(-separationDist, -R * 0.3, 0),
-            lineage: 'undetermined',
-            scale: [r * 1.04, r * 1.15, r * 1.04]
-          })
-          cells.push({
-            position: new THREE.Vector3(separationDist, -R * 0.3, 0),
-            lineage: 'undetermined',
-            scale: [r * 1.04, r * 1.15, r * 1.04]
-          })
-          scl = r
-        } else {
-          // Fallback to normal positioning for other cases
-          count = newCount
         }
+
+        // Mark that we handled 1→2 division - skip normal positioning
+        return { cells, scale: scl, embryoRadius }
+      } else if (isDividing && effectiveS0.cellCount === 2 && effectiveS1.cellCount === 4) {
+        // 2→4 cell division
+        const divisionProgress = (alpha - 0.2) / 0.6
+        const separationDist = 0.3 * R * divisionProgress
+        const r = R * 0.45
+
+        // First original cell divides
+        cells.push({
+          position: new THREE.Vector3(-separationDist, R * 0.3, 0),
+          lineage: 'undetermined',
+          scale: [r * 1.04, r * 1.15, r * 1.04],
+          nuclei: [{ position: new THREE.Vector3(0, 0, 0), size: 0.12 * r }]
+        })
+        cells.push({
+          position: new THREE.Vector3(separationDist, R * 0.3, 0),
+          lineage: 'undetermined',
+          scale: [r * 1.04, r * 1.15, r * 1.04],
+          nuclei: [{ position: new THREE.Vector3(0, 0, 0), size: 0.12 * r }]
+        })
+
+        // Second original cell divides
+        cells.push({
+          position: new THREE.Vector3(-separationDist, -R * 0.3, 0),
+          lineage: 'undetermined',
+          scale: [r * 1.04, r * 1.15, r * 1.04],
+          nuclei: [{ position: new THREE.Vector3(0, 0, 0), size: 0.12 * r }]
+        })
+        cells.push({
+          position: new THREE.Vector3(separationDist, -R * 0.3, 0),
+          lineage: 'undetermined',
+          scale: [r * 1.04, r * 1.15, r * 1.04],
+          nuclei: [{ position: new THREE.Vector3(0, 0, 0), size: 0.12 * r }]
+        })
+        scl = r
       } else {
         // Normal static cell positioning
         if (count === 1) {
           const r = R * 0.98
-          cells.push({ position: new THREE.Vector3(0, 0, 0), lineage: 'undetermined', scale: [r * 1.02, r, r * 1.02] })
+
+          // Add pronuclei and syngamy animation based on time within zygote stage
+          const stageProgress = alpha // Progress within zygote stage
+          let nuclei: { position: THREE.Vector3; size: number }[] = []
+
+          if (stageProgress < 0.4) {
+            // Two pronuclei - male and female
+            const separation = 0.15 * r * (1 - stageProgress / 0.4) // They get closer over time
+            nuclei = [
+              { position: new THREE.Vector3(-separation, 0, 0), size: 0.12 * r },
+              { position: new THREE.Vector3(separation, 0, 0), size: 0.12 * r }
+            ]
+          } else if (stageProgress < 0.6) {
+            // Syngamy - pronuclei merging
+            const mergeProgress = (stageProgress - 0.4) / 0.2
+            const separation = 0.03 * r * (1 - mergeProgress)
+            const nucleusSize = 0.12 * r * (1 + mergeProgress * 0.5) // Slightly larger during merge
+            nuclei = [
+              { position: new THREE.Vector3(-separation, 0, 0), size: nucleusSize },
+              { position: new THREE.Vector3(separation, 0, 0), size: nucleusSize }
+            ]
+          } else {
+            // Single nucleus after syngamy
+            nuclei = [{ position: new THREE.Vector3(0, 0, 0), size: 0.15 * r }]
+          }
+
+          cells.push({
+            position: new THREE.Vector3(0, 0, 0),
+            lineage: 'undetermined',
+            scale: [r * 1.02, r, r * 1.02],
+            nuclei
+          })
           scl = r
         } else if (count === 2) {
+          // Regular 2-cell positioning (only for stable 2-cell stage)
           const r = R * 0.5 * 0.99
           const d = R - r
-          cells.push({ position: new THREE.Vector3(0, d, 0), lineage: 'undetermined', scale: [r * 1.05, r * 1.15, r * 1.05] })
-          cells.push({ position: new THREE.Vector3(0, -d, 0), lineage: 'undetermined', scale: [r * 1.05, r * 1.15, r * 1.05] })
+          // Add single nucleus to each cell
+          const nuclei = [{ position: new THREE.Vector3(0, 0, 0), size: 0.13 * r }]
+          cells.push({
+            position: new THREE.Vector3(0, d, 0),
+            lineage: 'undetermined',
+            scale: [r * 1.05, r * 1.15, r * 1.05],
+            nuclei
+          })
+          cells.push({
+            position: new THREE.Vector3(0, -d, 0),
+            lineage: 'undetermined',
+            scale: [r * 1.05, r * 1.15, r * 1.05],
+            nuclei: [{ position: new THREE.Vector3(0, 0, 0), size: 0.13 * r }]
+          })
           scl = r
         } else if (count === 3) {
           const r = R * 0.56
@@ -258,7 +369,12 @@ export function EmbryoCanvas() {
           ]
           for (const ddir of dirs) {
             const pos = ddir.clone().normalize().multiplyScalar(a * 0.98)
-            cells.push({ position: pos, lineage: 'undetermined', scale: [r * 1.06, r, r * 1.06] })
+            cells.push({
+              position: pos,
+              lineage: 'undetermined',
+              scale: [r * 1.06, r, r * 1.06],
+              nuclei: [{ position: new THREE.Vector3(0, 0, 0), size: 0.12 * r }]
+            })
           }
           scl = r
         } else if (count === 4) {
@@ -273,7 +389,13 @@ export function EmbryoCanvas() {
           for (const dir of dirs) {
             const pos = dir.clone().multiplyScalar(a)
             const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir)
-            cells.push({ position: pos, lineage: 'undetermined', quaternion: q, scale: [r * 1.04, r * 1.15, r * 1.04] })
+            cells.push({
+              position: pos,
+              lineage: 'undetermined',
+              quaternion: q,
+              scale: [r * 1.04, r * 1.15, r * 1.04],
+              nuclei: [{ position: new THREE.Vector3(0, 0, 0), size: 0.11 * r }]
+            })
           }
           scl = r
         }
@@ -281,12 +403,47 @@ export function EmbryoCanvas() {
     }
 
 
-    // Lightweight relaxation for overlap and wall constraint
+    // Lightweight relaxation for overlap and wall constraint + gentle movement
     const iterations = active.includes('AURKA_inhibit') ? 2 : avgDay < 4 ? 6 : 3
     const maxR = embryoRadius - scl * 0.02
-    for (let iter = 0; iter < iterations; iter++) {
-      for (let i = 0; i < cells.length; i++) {
-        for (let j = i + 1; j < cells.length; j++) {
+
+    // Skip relaxation and movement for 1→2 division to preserve animation
+    const isIn1to2Division = (effectiveS0.cellCount === 1 && effectiveS1.cellCount === 2) ||
+                             (count === 1 && alpha > 0.1) ||
+                             (count === 2 && alpha < 0.9)
+
+    // Add gentle random movement to all cells (brownian-like motion)
+    const time = Date.now() * 0.001 // Current time for animation
+    for (let i = 0; i < cells.length; i++) {
+      const cell = cells[i]
+      // Add movement to 2+ cells, but vary amplitude by stage
+      if (count >= 2 && !isDividing && !isIn1to2Division) { // Don't add movement during division animations
+        const freq = 0.3 + 0.4 * prand(i + 999) // Slightly different frequency per cell
+
+        // Scale movement amplitude by stage - less for early stages, more for later
+        let amplitudeScale = 1.0
+        if (count === 2) amplitudeScale = 0.3      // Very gentle for 2-cell
+        else if (count <= 4) amplitudeScale = 0.5  // Gentle for 4-cell
+        else if (avgDay < 4) amplitudeScale = 0.7  // Moderate for morula
+        else amplitudeScale = 1.0                  // Full for blastocyst
+
+        const amplitude = scl * 0.025 * amplitudeScale * (0.5 + 0.5 * prand(i + 777))
+
+        // Gentle sinusoidal movement in 3D
+        const offset = new THREE.Vector3(
+          Math.sin(time * freq + i * 1.7) * amplitude,
+          Math.sin(time * freq * 1.3 + i * 2.1) * amplitude,
+          Math.sin(time * freq * 0.9 + i * 1.3) * amplitude
+        )
+        cell.position.add(offset)
+      }
+    }
+
+    // Skip relaxation during 1→2 division to preserve animation
+    if (!isIn1to2Division) {
+      for (let iter = 0; iter < iterations; iter++) {
+        for (let i = 0; i < cells.length; i++) {
+          for (let j = i + 1; j < cells.length; j++) {
           const a = cells[i].position
           const b = cells[j].position
           const delta = b.clone().sub(a)
@@ -337,8 +494,9 @@ export function EmbryoCanvas() {
         }
       }
     }
+    } // Close the isIn1to2Division condition
 
-    return { cells, scale: scl, embryoRadius, isDividing }
+    return { cells, scale: scl, embryoRadius }
   }, [stages, t, active, perts])
 
   return (
@@ -490,6 +648,33 @@ export function EmbryoCanvas() {
               ))}
           </Instances>
         )}
+
+        {/* Nuclei rendering */}
+        <Instances limit={512}>
+          <sphereGeometry args={[1, 16, 16]} />
+          <meshPhongMaterial
+            color={'#c4b5fd'}
+            transparent
+            opacity={0.4}
+            shininess={10}
+            specular={'#e0e7ff'}
+            side={THREE.DoubleSide}
+            depthWrite={false}
+          />
+          {cells.flatMap((cell, cellIndex) =>
+            (cell.nuclei || []).map((nucleus, nucleusIndex) => (
+              <Instance
+                key={`nucleus-${cellIndex}-${nucleusIndex}`}
+                position={[
+                  cell.position.x + nucleus.position.x,
+                  cell.position.y + nucleus.position.y,
+                  cell.position.z + nucleus.position.z
+                ]}
+                scale={nucleus.size}
+              />
+            ))
+          )}
+        </Instances>
       </group>
       <OrbitControls enablePan={false} />
     </Canvas>

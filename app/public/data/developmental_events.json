@@ -1,0 +1,129 @@
+[
+  {
+    "stage": "zygote",
+    "day": 0,
+    "events": [
+      {
+        "name": "Fertilization",
+        "description": "Sperm penetrates egg, pronuclei fusion occurs",
+        "time": 0,
+        "category": "cell_cycle",
+        "significance": "high"
+      },
+      {
+        "name": "Maternal-Zygotic Transition",
+        "description": "Maternal mRNAs begin degradation, zygotic genome prepares for activation",
+        "time": 0.3,
+        "category": "molecular",
+        "significance": "medium"
+      }
+    ]
+  },
+  {
+    "stage": "two_cell",
+    "day": 1,
+    "events": [
+      {
+        "name": "First Cleavage",
+        "description": "Zygote divides into two blastomeres of equal size",
+        "time": 0,
+        "category": "cell_cycle",
+        "significance": "high"
+      },
+      {
+        "name": "Embryonic Genome Activation (EGA)",
+        "description": "Major wave of zygotic gene expression begins",
+        "time": 0.5,
+        "category": "molecular",
+        "significance": "high"
+      }
+    ]
+  },
+  {
+    "stage": "four_cell",
+    "day": 2,
+    "events": [
+      {
+        "name": "Second Cleavage",
+        "description": "Two cells divide to form four blastomeres",
+        "time": 0,
+        "category": "cell_cycle",
+        "significance": "high"
+      },
+      {
+        "name": "EGA Peak Expression",
+        "description": "Highest levels of embryonic gene expression",
+        "time": 0.4,
+        "category": "molecular",
+        "significance": "medium"
+      }
+    ]
+  },
+  {
+    "stage": "eight_cell",
+    "day": 3,
+    "events": [
+      {
+        "name": "Third Cleavage",
+        "description": "Four cells divide to form eight blastomeres",
+        "time": 0,
+        "category": "cell_cycle",
+        "significance": "high"
+      },
+      {
+        "name": "Compaction Initiation",
+        "description": "Cells begin to form tight junctions and flatten",
+        "time": 0.6,
+        "category": "morphology",
+        "significance": "high"
+      }
+    ]
+  },
+  {
+    "stage": "morula",
+    "day": 4,
+    "events": [
+      {
+        "name": "Compaction Complete",
+        "description": "Cells fully compacted with tight junctions established",
+        "time": 0,
+        "category": "morphology",
+        "significance": "high"
+      },
+      {
+        "name": "First Lineage Specification",
+        "description": "Outer cells begin expressing TE markers (CDX2, GATA3)",
+        "time": 0.7,
+        "category": "lineage",
+        "significance": "high"
+      }
+    ]
+  },
+  {
+    "stage": "blastocyst",
+    "day": 5,
+    "events": [
+      {
+        "name": "Blastocoel Formation",
+        "description": "Fluid-filled cavity forms inside the embryo",
+        "time": 0,
+        "category": "morphology",
+        "significance": "high"
+      },
+      {
+        "name": "TE-ICM Segregation",
+        "description": "Clear separation of trophectoderm and inner cell mass",
+        "time": 0.3,
+        "category": "lineage",
+        "significance": "high"
+      },
+      {
+        "name": "Hatching Competence",
+        "description": "Embryo becomes capable of zona pellucida escape",
+        "time": 0.8,
+        "category": "developmental",
+        "significance": "medium"
+      }
+    ]
+  }
+]

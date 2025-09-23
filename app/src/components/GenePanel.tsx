@@ -1,35 +1,120 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useStore } from '../state/store'
 
-function Sparkline({ series, color = '#00d4ff' }: { series: number[]; color?: string }) {
+function Sparkline({ series, color = '#00d4ff', geneName }: { series: number[]; color?: string; geneName?: string }) {
+  const [hoveredPoint, setHoveredPoint] = useState<{index: number, value: number, x: number, y: number} | null>(null)
+  const stages = useStore((s) => s.stages)
+
   const w = 80
   const h = 16
   if (!series.length) return null
+
   const xs = series.map((_, i) => (i / Math.max(1, series.length - 1)) * (w - 4) + 2)
   const ys = series.map((v) => (1 - v) * (h - 6) + 3)
   const d = xs.map((x, i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${ys[i].toFixed(1)}`).join(' ')
+
+  // Calculate trend direction
+  const trend = series.length > 1 ? series[series.length - 1] - series[0] : 0
+  const trendColor = trend > 0.1 ? '#00ff88' : trend < -0.1 ? '#ff3366' : color
 
   // Create gradient for sparkline
   const gradient = `url(#grad-${color.replace('#', '')})`
 
   return (
-    <svg width={w} height={h} style={{ display: 'block' }}>
-      <defs>
-        <linearGradient id={`grad-${color.replace('#', '')}`} x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" style={{ stopColor: color, stopOpacity: 0.8 }} />
-          <stop offset="100%" style={{ stopColor: color, stopOpacity: 0.2 }} />
-        </linearGradient>
-      </defs>
-      <path
-        d={`${d} L${xs[xs.length - 1]},${h - 2} L${xs[0]},${h - 2} Z`}
-        fill={gradient}
-        opacity={0.3}
-      />
-      <path d={d} stroke={color} strokeWidth={1.5} fill="none" />
-      {xs.map((x, i) => (
-        <circle key={i} cx={x} cy={ys[i]} r="1.5" fill={color} opacity={0.8} />
-      ))}
-    </svg>
+    <div style={{ position: 'relative' }}>
+      <svg
+        width={w}
+        height={h}
+        style={{ display: 'block', cursor: 'pointer' }}
+        onMouseLeave={() => setHoveredPoint(null)}
+      >
+        <defs>
+          <linearGradient id={`grad-${color.replace('#', '')}`} x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style={{ stopColor: trendColor, stopOpacity: 0.8 }} />
+            <stop offset="100%" style={{ stopColor: trendColor, stopOpacity: 0.2 }} />
+          </linearGradient>
+        </defs>
+
+        {/* Fill area */}
+        <path
+          d={`${d} L${xs[xs.length - 1]},${h - 2} L${xs[0]},${h - 2} Z`}
+          fill={gradient}
+          opacity={0.3}
+        />
+
+        {/* Main line */}
+        <path
+          d={d}
+          stroke={trendColor}
+          strokeWidth={1.5}
+          fill="none"
+          style={{
+            filter: `drop-shadow(0 0 3px ${trendColor}40)`
+          }}
+        />
+
+        {/* Interactive points */}
+        {xs.map((x, i) => (
+          <circle
+            key={i}
+            cx={x}
+            cy={ys[i]}
+            r={hoveredPoint?.index === i ? "2.5" : "1.5"}
+            fill={trendColor}
+            opacity={hoveredPoint?.index === i ? 1 : 0.8}
+            style={{
+              transition: 'all 0.2s ease',
+              cursor: 'pointer'
+            }}
+            onMouseEnter={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect()
+              setHoveredPoint({
+                index: i,
+                value: series[i],
+                x: rect.left + rect.width / 2,
+                y: rect.top
+              })
+            }}
+          />
+        ))}
+
+        {/* Trend indicator arrow */}
+        {Math.abs(trend) > 0.1 && (
+          <polygon
+            points={trend > 0 ? `${w-8},3 ${w-3},7 ${w-8},11` : `${w-8},11 ${w-3},7 ${w-8},3`}
+            fill={trendColor}
+            opacity={0.6}
+          />
+        )}
+      </svg>
+
+      {/* Tooltip */}
+      {hoveredPoint && geneName && (
+        <div style={{
+          position: 'fixed',
+          left: hoveredPoint.x,
+          top: hoveredPoint.y - 40,
+          transform: 'translateX(-50%)',
+          background: 'rgba(10, 14, 39, 0.95)',
+          backdropFilter: 'blur(8px)',
+          border: `1px solid ${color}`,
+          borderRadius: '4px',
+          padding: '4px 8px',
+          fontSize: '10px',
+          color: '#e5e7eb',
+          zIndex: 1000,
+          pointerEvents: 'none',
+          whiteSpace: 'nowrap'
+        }}>
+          <div style={{ color: trendColor, fontWeight: '600' }}>
+            {geneName}
+          </div>
+          <div style={{ color: 'rgba(156, 163, 175, 0.9)' }}>
+            {stages[hoveredPoint.index]?.id || `Stage ${hoveredPoint.index}`}: {Math.round(hoveredPoint.value * 100)}%
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -77,7 +162,7 @@ function Bar({ label, value, series, color = '#00d4ff' }: {
           }} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Sparkline series={series} color={color} />
+          <Sparkline series={series} color={color} geneName={label} />
           <span style={{
             color: color,
             fontSize: '12px',
@@ -220,28 +305,53 @@ export function GenePanel() {
         marginBottom: '8px',
         display: 'flex',
         alignItems: 'center',
-        gap: '6px'
+        justifyContent: 'space-between'
       }}>
         <div style={{
-          color: 'rgba(156, 163, 175, 0.8)',
-          fontSize: '11px',
-          fontWeight: '500',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px'
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px'
         }}>
-          Expression Dynamics
-        </div>
-        {selected && (
           <div style={{
-            background: `${geneColors[Object.keys(expr[0]?.genes || {})[0]] || '#00d4ff'}33`,
-            color: geneColors[Object.keys(expr[0]?.genes || {})[0]] || '#00d4ff',
-            padding: '1px 6px',
-            borderRadius: '8px',
-            fontSize: '10px',
-            fontWeight: '600',
-            border: `1px solid ${geneColors[Object.keys(expr[0]?.genes || {})[0]] || '#00d4ff'}66`
+            color: 'rgba(156, 163, 175, 0.8)',
+            fontSize: '11px',
+            fontWeight: '500',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
           }}>
-            {selected.toUpperCase()}
+            Expression Dynamics
+          </div>
+          {selected && (
+            <div style={{
+              background: `${geneColors[Object.keys(expr[0]?.genes || {})[0]] || '#00d4ff'}33`,
+              color: geneColors[Object.keys(expr[0]?.genes || {})[0]] || '#00d4ff',
+              padding: '1px 6px',
+              borderRadius: '8px',
+              fontSize: '10px',
+              fontWeight: '600',
+              border: `1px solid ${geneColors[Object.keys(expr[0]?.genes || {})[0]] || '#00d4ff'}66`
+            }}>
+              {selected.toUpperCase()}
+            </div>
+          )}
+        </div>
+
+        {/* Expression summary */}
+        {expr.length > 0 && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            fontSize: '9px',
+            color: 'rgba(156, 163, 175, 0.7)'
+          }}>
+            <span>
+              {Object.values(expr[0].genes).length} genes
+            </span>
+            <span>•</span>
+            <span>
+              {Math.round(Object.values(expr[0].genes).reduce((a, b) => a + b, 0) / Object.values(expr[0].genes).length * 100)}% avg
+            </span>
           </div>
         )}
       </div>
