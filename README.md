@@ -2,6 +2,8 @@
 
 An interactive, self‑contained web app that visualizes early human embryo development (zygote → blastocyst). Users can scrub through developmental stages, inspect lineages and gene expression, and toggle simple in‑silico perturbations to see plausible outcomes.
 
+This POC demonstrates core concepts from the larger Digital Embryo Platform vision, focusing on the essential interactive visualization and perturbation capabilities that will form the foundation of the full three-panel research interface.
+
 Non‑goals for the MVP: no user uploads, no backend/database, no analytics; this is a teaching and vision‑casting tool.
 
 ## Quick Start
@@ -29,12 +31,26 @@ Non‑goals for the MVP: no user uploads, no backend/database, no analytics; thi
 
 ## Core Features
 
-- 3D embryo visualization with distinct stages: Zygote, Cleavage (2/4/8/16‑cell), Morula, Blastocyst (ICM/TE/Blastocoel)
-- Timeline scrubber + play to animate stage progression
+### 3D Embryo Observatory (Center Panel Concept)
+- **Morphological View**: 3D embryo visualization with distinct stages: Zygote, Cleavage (2/4/8/16‑cell), Morula, Blastocyst (ICM/TE/Blastocoel)
+- **Interactive Controls**: Click to select cells, hover for molecular profiles, drag to rotate, scroll to zoom
+- **Smart Coloring**: By lineage (TE/ICM/undetermined) with semi-translucent cells and specular highlights
+- **Lineage Visualization**: Color-coded cell fate indicators
+
+### Temporal Control (Timeline Concept)
+- Timeline scrubber with play/pause functionality for stage progression
 - Smooth interpolation between stages (sub‑step slider) for continuous transitions
-- Hover/select interactions with tooltips and info panel
-- Gene expression panel with simplified visualizations
-- In‑silico perturbation toggles (AURKA/glycolysis) to illustrate alternative trajectories
+- **Event Annotations**: Key developmental milestones marked on timeline
+
+### Analysis Suite (Right Panel Concept)
+- **Molecular Profile Display**: Gene expression panel showing key markers (OCT4, CDX2, GATA3, etc.)
+- **Risk Assessment**: Visual indicators for developmental success probability
+- **Interactive Tooltips**: Hover for instant molecular profile previews
+
+### Perturbation Laboratory (Modal Concept)
+- **In‑silico Simulation**: Toggle perturbations (AURKA inhibition, glycolysis impairment)
+- **Before/After Visualization**: See predicted outcomes with confidence indicators
+- **Molecular Signatures**: Expression changes from perturbations
 
 ## Current State (MVP visuals)
 
@@ -91,14 +107,25 @@ Example schemas (illustrative):
 - Initial load < 2 MB gzipped
 - Smooth 60 FPS on mid‑range laptops
 
-## UI Outline
+## UI Architecture
 
-- Timeline slider with labeled stages
-- 3D canvas as the primary focus
-- Information panel with tabs: Lineage Markers, Perturbation Sandbox
-- Tooltips on hover (<60 ms)
-- About modal with citations and links
-- Notification banner when a perturbation is active (e.g., “Simulation Mode…”) 
+### Layout Philosophy
+Simplified single-panel layout demonstrating core concepts from the full three-panel research interface:
+
+- **Primary Viewport**: 3D canvas as the central focus (concept: Center Panel "Embryo Observatory")
+- **Temporal Control**: Timeline slider with labeled stages and playback controls (concept: Bottom Panel timeline)
+- **Analysis Display**: Information panel with molecular profiles and perturbation controls (concept: Right Panel analysis suite)
+- **Interactive Elements**: Hover tooltips (<60 ms), click selection, smooth camera controls
+- **Modal Interfaces**: About dialog and perturbation settings (concept: floating modal laboratory)
+- **Status Indicators**: Notification banner for active perturbations ("Simulation Mode…")
+
+### Design Language
+- **Color System**:
+  - Background: Deep space (`#0a0e27`) reflecting the full platform aesthetic
+  - Success indicators: Bright green for healthy development
+  - Risk indicators: Amber/red for perturbations and developmental concerns
+  - Data overlays: Scientific palette for expression visualization
+- **Progressive Disclosure**: Essential information visible, detailed data on demand 
 
 ## Development Roadmap
 
@@ -111,6 +138,16 @@ See `docs/DEVELOPMENT.md` for detailed progress across v0.1–v0.4.
 
 ## Planned Improvements
 
+### Platform Alignment Features
+Features that align with the full Digital Embryo Platform vision:
+
+- **Enhanced Risk Assessment**: Visual indicators for developmental success probability (concept: Risk Assessment Dashboard)
+- **Predictive Visualization**: Semi-transparent overlays showing probable future states (concept: Predictive Ghosting)
+- **Temporal Annotations**: More detailed developmental milestones and molecular events on timeline
+- **Expression Dynamics**: Trend sparklines showing gene expression changes over time
+- **Perturbation Confidence**: Statistical reliability indicators for simulation outcomes
+
+### Current Technical Improvements
 - Camera presets and easing per stage (closer in cleavage, wider at blastocyst) — Implemented
 - More realistic compaction curve and packing (tunable relaxation)
 - Blastocoel visual surface (thin inner fluid sheet) and adjustable cavity size — Implemented
