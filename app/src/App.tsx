@@ -192,7 +192,7 @@ function App() {
             <Timeline />
           </Suspense>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 0 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 440px', gap: 0 }}>
           <div style={{
             padding: '20px',
             background: 'rgba(10, 14, 39, 0.3)',
@@ -235,6 +235,14 @@ function App() {
                 <EmbryoCanvas />
                 <LayerControlsOverlay />
               </Suspense>
+            </div>
+            <div style={{
+              marginTop: 10,
+              fontSize: 11,
+              color: 'rgba(148, 163, 184, 0.75)',
+              letterSpacing: '0.02em'
+            }}>
+              Embryo images for demonstration only - v2.0 to include true embryo image model.
             </div>
           </div>
           <aside style={{
