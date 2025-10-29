@@ -156,11 +156,11 @@ export function Timeline() {
         >
           {playing ? (
             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M8 5v14l11-7z"/>
+              <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
             </svg>
           ) : (
             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+              <path d="M8 5v14l11-7z"/>
             </svg>
           )}
           {playing ? 'Pause' : 'Play'}

@@ -54,7 +54,7 @@ export const useStore = create<StoreState>((set, get) => ({
   selectedLineage: null,
   visibility: { TE: true, ICM: true, undetermined: true, zona: true },
   playing: false,
-  playSpeedMs: 1200,
+  playSpeedMs: 2500,
   loading: false,
   error: null,
   loadData: async () => {

@@ -98,9 +98,23 @@ export function EmbryoCanvas() {
     const icmCount = Math.round(count * icmRatio)
     const undCount = Math.max(0, count - teCount - icmCount)
 
-    // Cell scale: continuous across 4->5 so sizes don't jump
-    let scl = 0.6 / Math.cbrt(count + 0.25)
-    scl = Math.min(0.45, Math.max(0.18, scl))
+    // Improved cell scaling for more realistic sizes
+    let scl: number
+    if (count <= 4) {
+      // Early stages: larger cells that fill the zona
+      scl = 0.45
+    } else if (count <= 8) {
+      // 5-8 cells: start larger, then reduce moderately
+      scl = lerp(0.42, 0.32, (count - 4) / 4)
+    } else if (count <= 16) {
+      // 9-16 cells: continue reducing but not too dramatically
+      scl = lerp(0.32, 0.26, (count - 8) / 8)
+    } else {
+      // Many cells: use cubic root for dense packing
+      scl = 0.6 / Math.cbrt(count + 0.25)
+      scl = Math.min(0.26, Math.max(0.18, scl))
+    }
+
     if (active.includes('glycolysis_impair')) scl *= 0.9
 
     const embryoRadius = 1.0
@@ -155,17 +169,28 @@ export function EmbryoCanvas() {
     // Undetermined: before compaction, distribute to fill zona; after, on a shell
     if (undCount > 0) {
       if (avgDay < 3 && count > 4) {
-        // Early cleavage (5–8 cells): arrange near zona surface with slight inward jitter
-        const shell = fibonacciSpherePoints(undCount, embryoRadius - scl * 0.15)
+        // Early cleavage (5–8 cells): arrange closer to center with better packing
+        // Use a smaller radius so cells appear closer together and larger
+        const packingRadius = embryoRadius * 0.6 + scl * 0.8 // Much closer to center
+        const shell = fibonacciSpherePoints(undCount, packingRadius)
         for (let i = 0; i < undCount; i++) {
           const p = shell[i]
-          const jitter = (prand(i + 501) * 0.4 + 0.1) * scl
+          // Add some variation but keep cells well-packed
+          const jitter = (prand(i + 501) * 0.3 + 0.1) * scl
           const len = p.length() || 1
-          const inward = p.clone().multiplyScalar(-jitter / len)
+          const variation = p.clone().multiplyScalar(jitter / len)
+          const finalPos = p.clone().add(variation)
+
+          // Ensure we don't go outside zona
+          const maxRadius = embryoRadius - scl * 0.3
+          if (finalPos.length() > maxRadius) {
+            finalPos.normalize().multiplyScalar(maxRadius)
+          }
+
           cells.push({
-            position: p.clone().add(inward),
+            position: finalPos,
             lineage: 'undetermined',
-            nuclei: [{ position: new THREE.Vector3(0, 0, 0), size: 0.09 * scl }]
+            nuclei: [{ position: new THREE.Vector3(0, 0, 0), size: 0.1 * scl }]
           })
         }
       } else if (avgDay < 4.2) {
