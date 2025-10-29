@@ -1,7 +1,8 @@
 import { create } from 'zustand'
+import { resolveAssetUrl } from '../utils/resolveAsset'
 
 const fetchJson = async <T>(relativePath: string): Promise<T> => {
-  const response = await fetch(new URL(relativePath, import.meta.env.BASE_URL))
+  const response = await fetch(resolveAssetUrl(relativePath))
   if (!response.ok) throw new Error(`Failed to load ${relativePath}`)
   return response.json() as Promise<T>
 }

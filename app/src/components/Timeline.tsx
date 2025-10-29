@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '../state/store'
+import { resolveAssetUrl } from '../utils/resolveAsset'
 
 type DevelopmentalEvent = {
   name: string
@@ -39,7 +40,7 @@ export function Timeline() {
   useEffect(() => {
     const loadEvents = async () => {
       try {
-        const response = await fetch(new URL('data/developmental_events.json', import.meta.env.BASE_URL))
+        const response = await fetch(resolveAssetUrl('data/developmental_events.json'))
         const events = await response.json() as StageEvents[]
         setDevelopmentalEvents(events)
       } catch (error) {
