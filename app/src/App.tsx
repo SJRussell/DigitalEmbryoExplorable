@@ -58,12 +58,15 @@ function App() {
     if (lin) useStore.setState({ selectedLineage: lin })
     const vp = params.get('vis')
     if (vp) {
+      const hasNucleiEnabled = vp.includes('N')
+      const hasNucleiDisabled = vp.includes('n')
       useStore.setState({
         visibility: {
           TE: vp.includes('T'),
           ICM: vp.includes('I'),
           undetermined: vp.includes('U'),
           zona: vp.includes('Z'),
+          nuclei: hasNucleiEnabled ? true : hasNucleiDisabled ? false : true,
         },
       })
     }
@@ -75,12 +78,13 @@ function App() {
     const params = new URLSearchParams()
     params.set('t', String(Math.round(t * 100) / 100))
     if (useStore.getState().selectedLineage) params.set('lin', useStore.getState().selectedLineage!)
-    const vflags = `${vis.TE ? 'T' : ''}${vis.ICM ? 'I' : ''}${vis.undetermined ? 'U' : ''}${vis.zona ? 'Z' : ''}`
+    const nucleiFlag = vis.nuclei ? 'N' : 'n'
+    const vflags = `${vis.TE ? 'T' : ''}${vis.ICM ? 'I' : ''}${vis.undetermined ? 'U' : ''}${vis.zona ? 'Z' : ''}${nucleiFlag}`
     params.set('vis', vflags)
     if (perts.length) params.set('perts', perts.join(','))
     const url = `${window.location.pathname}?${params.toString()}`
     window.history.replaceState(null, '', url)
-  }, [t, vis.TE, vis.ICM, vis.undetermined, vis.zona, perts])
+  }, [t, vis.TE, vis.ICM, vis.undetermined, vis.zona, vis.nuclei, perts])
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0e27', color: '#e5e7eb' }}>

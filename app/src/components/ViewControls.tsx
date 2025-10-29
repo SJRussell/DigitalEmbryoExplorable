@@ -96,6 +96,12 @@ export default function ViewControls() {
           label="Zona Pellucida"
           color="#a78bfa"
         />
+        <ToggleSwitch
+          checked={vis.nuclei}
+          onChange={() => toggle('nuclei')}
+          label="Cell Nuclei"
+          color="#c4b5fd"
+        />
       </div>
     </div>
   )

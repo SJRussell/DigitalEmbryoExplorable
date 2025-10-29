@@ -34,7 +34,7 @@ type StoreState = {
   stageT: number
   activePerturbations: string[]
   selectedLineage: string | null
-  visibility: { TE: boolean; ICM: boolean; undetermined: boolean; zona: boolean }
+  visibility: { TE: boolean; ICM: boolean; undetermined: boolean; zona: boolean; nuclei: boolean }
   playing: boolean
   playSpeedMs: number
   loading: boolean
@@ -59,7 +59,7 @@ export const useStore = create<StoreState>((set, get) => ({
   stageT: 0,
   activePerturbations: [],
   selectedLineage: null,
-  visibility: { TE: true, ICM: true, undetermined: true, zona: true },
+  visibility: { TE: true, ICM: true, undetermined: true, zona: true, nuclei: true },
   playing: false,
   playSpeedMs: 2500,
   loading: false,
@@ -123,7 +123,7 @@ export const useStore = create<StoreState>((set, get) => ({
       stageT: 0,
       activePerturbations: [],
       selectedLineage: firstLineage,
-      visibility: { TE: true, ICM: true, undetermined: true, zona: true },
+      visibility: { TE: true, ICM: true, undetermined: true, zona: true, nuclei: true },
     })
   },
 }))

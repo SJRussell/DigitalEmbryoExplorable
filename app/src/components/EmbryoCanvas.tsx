@@ -675,31 +675,33 @@ export function EmbryoCanvas() {
         )}
 
         {/* Nuclei rendering */}
-        <Instances limit={512}>
-          <sphereGeometry args={[1, 16, 16]} />
-          <meshPhongMaterial
-            color={'#c4b5fd'}
-            transparent
-            opacity={0.4}
-            shininess={10}
-            specular={'#e0e7ff'}
-            side={THREE.DoubleSide}
-            depthWrite={false}
-          />
-          {cells.flatMap((cell, cellIndex) =>
-            (cell.nuclei || []).map((nucleus, nucleusIndex) => (
-              <Instance
-                key={`nucleus-${cellIndex}-${nucleusIndex}`}
-                position={[
-                  cell.position.x + nucleus.position.x,
-                  cell.position.y + nucleus.position.y,
-                  cell.position.z + nucleus.position.z
-                ]}
-                scale={nucleus.size}
-              />
-            ))
-          )}
-        </Instances>
+        {visibility.nuclei && (
+          <Instances limit={512}>
+            <sphereGeometry args={[1, 16, 16]} />
+            <meshPhongMaterial
+              color={'#c4b5fd'}
+              transparent
+              opacity={0.4}
+              shininess={10}
+              specular={'#e0e7ff'}
+              side={THREE.DoubleSide}
+              depthWrite={false}
+            />
+            {cells.flatMap((cell, cellIndex) =>
+              (cell.nuclei || []).map((nucleus, nucleusIndex) => (
+                <Instance
+                  key={`nucleus-${cellIndex}-${nucleusIndex}`}
+                  position={[
+                    cell.position.x + nucleus.position.x,
+                    cell.position.y + nucleus.position.y,
+                    cell.position.z + nucleus.position.z
+                  ]}
+                  scale={nucleus.size}
+                />
+              ))
+            )}
+          </Instances>
+        )}
       </group>
       <OrbitControls enablePan={false} />
     </Canvas>
