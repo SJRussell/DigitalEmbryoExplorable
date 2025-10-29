@@ -1,5 +1,11 @@
 import { create } from 'zustand'
 
+const fetchJson = async <T>(relativePath: string): Promise<T> => {
+  const response = await fetch(new URL(relativePath, import.meta.env.BASE_URL))
+  if (!response.ok) throw new Error(`Failed to load ${relativePath}`)
+  return response.json() as Promise<T>
+}
+
 export type Stage = {
   id: string
   day: number
@@ -60,16 +66,10 @@ export const useStore = create<StoreState>((set, get) => ({
   loadData: async () => {
     try {
       set({ loading: true, error: null })
-      const [stagesRes, exprRes, pertRes] = await Promise.all([
-        fetch('/data/stages.json'),
-        fetch('/data/expression.json'),
-        fetch('/data/perturbations.json'),
-      ])
-      if (!stagesRes.ok || !exprRes.ok || !pertRes.ok) throw new Error('Failed to load data')
       const [stages, expressions, perturbations] = await Promise.all([
-        stagesRes.json(),
-        exprRes.json(),
-        pertRes.json(),
+        fetchJson<Stage[]>('data/stages.json'),
+        fetchJson<Expression[]>('data/expression.json'),
+        fetchJson<Record<string, Perturbation>>('data/perturbations.json'),
       ])
       set({ stages, expressions, perturbations, loading: false, error: null })
       // default lineage

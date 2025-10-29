@@ -39,7 +39,7 @@ export function Timeline() {
   useEffect(() => {
     const loadEvents = async () => {
       try {
-        const response = await fetch('/data/developmental_events.json')
+        const response = await fetch(new URL('data/developmental_events.json', import.meta.env.BASE_URL))
         const events = await response.json() as StageEvents[]
         setDevelopmentalEvents(events)
       } catch (error) {
